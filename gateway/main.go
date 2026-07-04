@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	pb "gateway-auth-service/proto"
+	pdpb "gateway-auth-service/proto/patientdata/v1"
 )
 
 var limiter = rate.NewLimiter(10, 20)
@@ -42,7 +43,11 @@ func validateJWT(tokenString string, secret []byte) (jwt.MapClaims, error) {
 	return nil, err
 }
 
-func patientHandler(authClient pb.AuthorizationServiceClient, jwtSecret []byte) http.HandlerFunc {
+func patientHandler(
+	authClient pb.AuthorizationServiceClient,
+	pdClient pdpb.PatientDataServiceClient,
+	jwtSecret []byte,
+) http.HandlerFunc {
     return func(w http.ResponseWriter, r *http.Request) {
         if !limiter.Allow() {
             http.Error(w, "Muitas solicitações", http.StatusTooManyRequests)
@@ -93,10 +98,26 @@ func patientHandler(authClient pb.AuthorizationServiceClient, jwtSecret []byte) 
             return
         }
 
-        // TODO: Encaminhar para PatientData/DataTransform via gRPC baseado no AccessLevel retornado
+		rawPatient, err := pdClient.GetPatient(context.Background(), &pdpb.GetPatientRequest{ PatientId: patientID })
 
+		if err != nil {
+			log.Printf("Erro ao buscar dados no PatientData: %v\n", err)
+			http.Error(w, "Erro ao buscar dados do paciente no banco", http.StatusInternalServerError)
+			return
+		}
+
+        // TODO: Encaminhar para DataTransform via gRPC baseado no AccessLevel retornado
+
+		w.Header().Set("Content-Type", "application/json")
         w.WriteHeader(http.StatusOK)
-        fmt.Fprintf(w, "Acesso permitido! Nível: %v\n", authResp.AccessLevel)
+        fmt.Fprintf(w, `{
+			"mensagem": "Acesso permitido com nível %v",
+			"simulacao_transform": {
+				"id": "%s",
+				"nome_capturado_do_banco": "%s"
+			}
+		}
+		`, authResp.AccessLevel, rawPatient.PatientId, rawPatient.FullName)
     }
 }
 
@@ -112,18 +133,25 @@ func logginMiddleware(next http.Handler) http.Handler {
 func main() {
 	port := getEnv("GATEWAY_PORT", "8080")
 	jwtSecret := []byte(getEnv("JWT_SECRET", "secret-key"))
-	authTarget := getEnv("AUTH_SERVICE_TARGET", "localhost:50051")
+	authTarget := getEnv("AUTH_SERVICE_TARGET", "localhost:50052")
+	patientDataTarget := getEnv("PATIENT_DATA_TARGET", "localhost:50051")
 
-	conn, err := grpc.NewClient(authTarget, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	authConn, err := grpc.NewClient(authTarget, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Não foi possível conectar ao AuthService: %v", err)
 	}
+	defer authConn.Close()
+	authClient := pb.NewAuthorizationServiceClient(authConn)
 
-	defer conn.Close()
-	authClient := pb.NewAuthorizationServiceClient(conn)
+	pdConn, err := grpc.NewClient(patientDataTarget, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Não foi possível conectar ao PatientDataService: %v", err)
+	}
+	defer pdConn.Close()
+	pdClient := pdpb.NewPatientDataServiceClient(pdConn)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/patients", patientHandler(authClient, jwtSecret))
+	mux.HandleFunc("/api/patients", patientHandler(authClient, pdClient, jwtSecret))
 	mux.Handle("/metrics", promhttp.Handler())
 
 	loggedMux := logginMiddleware(mux)

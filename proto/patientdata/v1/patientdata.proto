@@ -1,0 +1,137 @@
+syntax = "proto3";
+
+package patientdata.v1;
+
+option go_package = "gateway-authorization-service/proto/patientdata/v1;patientdatav1";
+
+// PatientDataService expõe consultas SQL sobre o pseudo-prontuário eletrônico
+// do Hospital Universitário. Devolve dados CRUS (sem anonimização): a aplicação
+// dos níveis de acesso (FULL/PARTIAL/ANONYMIZED/AGGREGATED) e a conversão para
+// HL7/FHIR são responsabilidade do data-transform-service.
+service PatientDataService {
+  // Pacientes sob responsabilidade de um médico.
+  rpc ListPatientsByDoctor(ListPatientsByDoctorRequest) returns (PatientList);
+  // Pacientes supervisionados de um estagiário.
+  rpc ListSupervisedPatients(ListSupervisedPatientsRequest) returns (PatientList);
+  // Dados cadastrais de um paciente.
+  rpc GetPatient(GetPatientRequest) returns (Patient);
+  // Atendimentos de um paciente.
+  rpc ListEncounters(ListEncountersRequest) returns (EncounterList);
+  // Eventos clínicos (Condition/Observation/Medication) de um paciente.
+  rpc ListClinicalEvents(ListClinicalEventsRequest) returns (ClinicalEventList);
+  // Resumo clínico (paciente + último atendimento + condições + últimos exames + medicações).
+  rpc GetClinicalSummary(GetClinicalSummaryRequest) returns (ClinicalSummary);
+  // Histórico clínico temporal (eventos ordenados por data).
+  rpc GetClinicalHistory(GetClinicalHistoryRequest) returns (ClinicalEventList);
+  // Pacientes de uma coorte (todos com uma dada condição clínica).
+  rpc ListCohortPatients(ListCohortPatientsRequest) returns (PatientList);
+  // Estatísticas agregadas de uma coorte.
+  rpc GetCohortStatistics(GetCohortStatisticsRequest) returns (CohortStatistics);
+  // Projetos de pesquisa de um pesquisador.
+  rpc ListProjectsByResearcher(ListProjectsByResearcherRequest) returns (ProjectList);
+  // Verifica o vínculo cuidador↔paciente (usado pelo Authorization Service).
+  rpc CheckAssignment(CheckAssignmentRequest) returns (CheckAssignmentResponse);
+}
+
+// ---------- Entidades ----------
+
+message Patient {
+  string patient_id = 1;
+  string full_name = 2;
+  string birth_date = 3; // ISO 8601 (YYYY-MM-DD)
+  string gender = 4;     // male | female | other
+  string city = 5;
+  string state = 6;
+  string cpf = 7;
+  string cns = 8;
+}
+
+message Encounter {
+  string encounter_id = 1;
+  string patient_id = 2;
+  string start_date = 3;      // ISO 8601
+  string end_date = 4;        // ISO 8601 (pode ser vazio)
+  string encounter_type = 5;  // Ambulatorial | Emergencia | Internacao | Retorno
+  string department = 6;      // Cardiologia | Endocrinologia | ...
+}
+
+message ClinicalEvent {
+  string event_id = 1;
+  string patient_id = 2;
+  string encounter_id = 3;
+  string event_type = 4;      // Condition | Observation | Medication
+  string code = 5;            // Diabetes | Hipertensao | HbA1c | Metformina | ...
+  string description = 6;
+  string event_date = 7;      // ISO 8601
+  optional double value = 8;  // preenchido para Observation/Medication
+  string unit = 9;
+}
+
+message Project {
+  string project_id = 1;
+  string title = 2;
+  string researcher_username = 3;
+  string condition_code = 4;  // igual ao clinical_events.code das condições
+  string status = 5;          // Aprovado | Expirado | Suspenso
+  string valid_until = 6;     // ISO 8601
+}
+
+message ClinicalSummary {
+  Patient patient = 1;
+  Encounter last_encounter = 2;
+  repeated ClinicalEvent conditions = 3;
+  repeated ClinicalEvent recent_observations = 4;
+  repeated ClinicalEvent active_medications = 5;
+}
+
+// ---------- Agregações ----------
+
+// Par chave→contagem usado em distribuições e frequências.
+message Count {
+  string key = 1;
+  int64 count = 2;
+}
+
+message CohortStatistics {
+  string condition_code = 1;
+  int64 total_patients = 2;
+  repeated Count by_sex = 3;            // ex.: male=6, female=7
+  repeated Count by_age_range = 4;      // ex.: 18-39=3, 40-59=6, 60+=4
+  double mean_hba1c = 5;
+  double median_hba1c = 6;
+  repeated Count medication_frequency = 7; // ex.: Metformina=10, Insulina=4
+  repeated Count by_department = 8;         // ex.: Endocrinologia=13, Cardiologia=2
+}
+
+// ---------- Wrappers de lista ----------
+
+message PatientList { repeated Patient patients = 1; }
+message EncounterList { repeated Encounter encounters = 1; }
+message ClinicalEventList { repeated ClinicalEvent events = 1; }
+message ProjectList { repeated Project projects = 1; }
+
+// ---------- Requests ----------
+
+message ListPatientsByDoctorRequest { string doctor_username = 1; }
+message ListSupervisedPatientsRequest { string intern_username = 1; }
+message GetPatientRequest { string patient_id = 1; }
+message ListEncountersRequest { string patient_id = 1; }
+message ListClinicalEventsRequest {
+  string patient_id = 1;
+  string event_type = 2; // opcional; vazio = todos os tipos
+}
+message GetClinicalSummaryRequest { string patient_id = 1; }
+message GetClinicalHistoryRequest { string patient_id = 1; }
+message ListCohortPatientsRequest { string condition_code = 1; }
+message GetCohortStatisticsRequest { string condition_code = 1; }
+message ListProjectsByResearcherRequest { string researcher_username = 1; }
+
+message CheckAssignmentRequest {
+  string username = 1;
+  string patient_id = 2;
+  string role = 3; // medico | estagiario
+}
+message CheckAssignmentResponse {
+  bool allowed = 1;
+  string assignment_type = 2; // vazio se não houver vínculo
+}
