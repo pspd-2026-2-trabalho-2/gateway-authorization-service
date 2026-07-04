@@ -14,8 +14,10 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	pb "gateway-auth-service/proto"
+	dtpb "gateway-auth-service/proto/datatransform/v1"
 	pdpb "gateway-auth-service/proto/patientdata/v1"
 )
 
@@ -43,9 +45,29 @@ func validateJWT(tokenString string, secret []byte) (jwt.MapClaims, error) {
 	return nil, err
 }
 
+func mapAccessLevel(authLevel pb.AccessLevel) dtpb.AccessLevel {
+	switch authLevel {
+	case pb.AccessLevel_FULL:
+		return dtpb.AccessLevel_FULL
+
+	case pb.AccessLevel_PARTIAL:
+		return dtpb.AccessLevel_PARTIAL
+
+	case pb.AccessLevel_ANONYMIZED:
+		return dtpb.AccessLevel_ANONYMIZED
+	
+	case pb.AccessLevel_AGGREGATED:
+		return dtpb.AccessLevel_AGGREGATED
+
+	default:
+		return dtpb.AccessLevel_ACCESS_LEVEL_UNSPECIFIED
+	}
+}
+
 func patientHandler(
 	authClient pb.AuthorizationServiceClient,
 	pdClient pdpb.PatientDataServiceClient,
+	dtClient dtpb.DataTransformServiceClient,
 	jwtSecret []byte,
 ) http.HandlerFunc {
     return func(w http.ResponseWriter, r *http.Request) {
@@ -106,18 +128,23 @@ func patientHandler(
 			return
 		}
 
-        // TODO: Encaminhar para DataTransform via gRPC baseado no AccessLevel retornado
+		dtLevel := mapAccessLevel(authResp.AccessLevel)
+		fhirResp, err := dtClient.TransformPatient(context.Background(), &dtpb.TransformPatientRequest{
+			Patient:	 rawPatient,
+			AccessLevel: dtLevel,
+		})
+
+		if err != nil {
+			log.Printf("Erro ao transformar dados: %v", err)
+			http.Error(w, "Erro interno ao formatar dados médicos", http.StatusInternalServerError)
+			return
+		}
 
 		w.Header().Set("Content-Type", "application/json")
         w.WriteHeader(http.StatusOK)
-        fmt.Fprintf(w, `{
-			"mensagem": "Acesso permitido com nível %v",
-			"simulacao_transform": {
-				"id": "%s",
-				"nome_capturado_do_banco": "%s"
-			}
-		}
-		`, authResp.AccessLevel, rawPatient.PatientId, rawPatient.FullName)
+		
+		jsonBytes, _ := protojson.Marshal(fhirResp)
+		w.Write(jsonBytes)
     }
 }
 
@@ -133,8 +160,10 @@ func logginMiddleware(next http.Handler) http.Handler {
 func main() {
 	port := getEnv("GATEWAY_PORT", "8080")
 	jwtSecret := []byte(getEnv("JWT_SECRET", "secret-key"))
+
 	authTarget := getEnv("AUTH_SERVICE_TARGET", "localhost:50052")
 	patientDataTarget := getEnv("PATIENT_DATA_TARGET", "localhost:50051")
+	dataTransformTarget := getEnv("DATA_TRANSFORM_TARGET", "localhost:50053")
 
 	authConn, err := grpc.NewClient(authTarget, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -150,8 +179,15 @@ func main() {
 	defer pdConn.Close()
 	pdClient := pdpb.NewPatientDataServiceClient(pdConn)
 
+	dtConn, err := grpc.NewClient(dataTransformTarget, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Não foi possível conectar ao DataTransformService: %v", err)
+	}
+	defer dtConn.Close()
+	dtClient := dtpb.NewDataTransformServiceClient(dtConn)
+
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/patients", patientHandler(authClient, pdClient, jwtSecret))
+	mux.HandleFunc("/api/patients", patientHandler(authClient, pdClient, dtClient, jwtSecret))
 	mux.Handle("/metrics", promhttp.Handler())
 
 	loggedMux := logginMiddleware(mux)

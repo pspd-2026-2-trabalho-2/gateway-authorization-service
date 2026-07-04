@@ -26,6 +26,7 @@ services:
       - JWT_SECRET=secret-key
       - AUTH_SERVICE_TARGET=auth-service:50052
       - PATIENT_DATA_TARGET=host.docker.internal:50051
+      - DATA_TRANSFORM_TARGET=host.docker.internal:50053
     depends_on:
       - auth-service
     extra_hosts:

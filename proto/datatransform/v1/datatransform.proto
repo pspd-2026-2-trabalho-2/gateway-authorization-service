@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+package datatransform.v1;
+
+import "patientdata/v1/patientdata.proto";
+import "google/protobuf/struct.proto";
+
+option go_package = "gateway-authorization-service/proto/datatransform/v1;datatransformv1";
+
+// DataTransformService recebe os dados crus + nível de acesso, aplica
+// anonimização/agregação e converte para HL7/FHIR. As respostas FHIR são objetos
+// JSON (google.protobuf.Struct): um recurso (ex.: Patient) ou um Bundle.
+service DataTransformService {
+  // Paciente único -> recurso FHIR Patient (com o nível aplicado).
+  rpc TransformPatient(TransformPatientRequest) returns (google.protobuf.Struct);
+  // Resumo clínico -> Bundle (Patient + Encounter + Condition + Observation + MedicationRequest).
+  rpc TransformClinicalSummary(TransformClinicalSummaryRequest) returns (google.protobuf.Struct);
+  // Histórico clínico -> Bundle de eventos em ordem temporal.
+  rpc TransformClinicalHistory(TransformClinicalHistoryRequest) returns (google.protobuf.Struct);
+  // Lista de pacientes (de um médico/estagiário) -> Bundle de Patient.
+  rpc TransformPatientList(TransformPatientListRequest) returns (google.protobuf.Struct);
+  // Exames de uma coorte, anonimizados -> Bundle (para pesquisadores).
+  rpc TransformCohortExams(TransformCohortExamsRequest) returns (google.protobuf.Struct);
+  // Estatísticas cruas de uma coorte -> resposta com percentuais (AGGREGATED).
+  rpc TransformCohortStatistics(TransformCohortStatisticsRequest) returns (CohortStatisticsResponse);
+  // Projetos de pesquisa -> Bundle de ResearchStudy.
+  rpc TransformProjects(TransformProjectsRequest) returns (google.protobuf.Struct);
+}
+
+// Nível de acesso determinado pelo Authorization Service (repassado pela Gateway).
+enum AccessLevel {
+  ACCESS_LEVEL_UNSPECIFIED = 0;
+  FULL = 1;        // dados completos
+  PARTIAL = 2;     // iniciais, sem CPF/CNS, ano de nascimento
+  ANONYMIZED = 3;  // pseudônimo, sem identificadores diretos, faixa etária
+  AGGREGATED = 4;  // apenas totais/percentuais
+}
+
+message TransformPatientRequest {
+  patientdata.v1.Patient patient = 1;
+  AccessLevel access_level = 2;
+}
+
+message TransformClinicalSummaryRequest {
+  patientdata.v1.ClinicalSummary summary = 1;
+  AccessLevel access_level = 2;
+}
+
+message TransformClinicalHistoryRequest {
+  patientdata.v1.Patient patient = 1;
+  repeated patientdata.v1.ClinicalEvent events = 2;
+  AccessLevel access_level = 3;
+}
+
+message TransformPatientListRequest {
+  repeated patientdata.v1.Patient patients = 1;
+  AccessLevel access_level = 2;
+}
+
+// Um paciente da coorte com seus exames (usado em TransformCohortExams).
+message PatientExams {
+  patientdata.v1.Patient patient = 1;
+  repeated patientdata.v1.ClinicalEvent exams = 2;
+}
+
+message TransformCohortExamsRequest {
+  repeated PatientExams patients = 1;
+  AccessLevel access_level = 2;
+}
+
+message TransformCohortStatisticsRequest {
+  patientdata.v1.CohortStatistics stats = 1;
+}
+
+message TransformProjectsRequest {
+  repeated patientdata.v1.Project projects = 1;
+}
+
+// Par chave→contagem→percentual usado nas distribuições agregadas.
+message Percentage {
+  string key = 1;
+  int64 count = 2;
+  double percentage = 3;
+}
+
+message CohortStatisticsResponse {
+  string condition_code = 1;
+  int64 total_patients = 2;
+  repeated Percentage by_sex = 3;
+  repeated Percentage by_age_range = 4;
+  double mean_hba1c = 5;
+  double median_hba1c = 6;
+  repeated Percentage medication_frequency = 7;
+  repeated Percentage by_department = 8;
+}
