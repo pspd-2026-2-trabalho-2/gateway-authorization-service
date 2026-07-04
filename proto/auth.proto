@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package auth;
+option go_package = "gateway-auth-service/proto/auth";
+
+enum AccessLevel {
+    DENIED = 0;
+    FULL = 1;
+    PARTIAL = 2;
+    ANONYMIZED = 3;
+    AGGREGATED = 4;
+}
+
+enum Decision {
+    DENY = 0;
+    ALLOW = 1;
+}
+
+message AuthorizeRequest {
+    string username = 1;
+    string role = 2;
+    string target_patient_id = 3;
+    string project_id = 4;
+}
+
+message AuthorizeResponse {
+    Decision decision = 1;
+    AccessLevel access_level = 2;
+    string message = 3;
+}
+
+service AuthorizationService {
+    rpc Authorize(AuthorizeRequest) returns (AuthorizeResponse);
+}
