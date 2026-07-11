@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
 
+	"github.com/MicahParks/keyfunc/v3"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -24,7 +26,17 @@ func getEnv(key, fallback string) string {
 
 func main() {
 	port := getEnv("GATEWAY_PORT", "8080")
-	jwtSecret = []byte(getEnv("JWT_SECRET", "secret-key"))
+	corsAllowedOrigin = getEnv("CORS_ALLOWED_ORIGIN", "http://localhost:5173")
+	keycloakURL := getEnv("KEYCLOAK_URL", "https://kiriland.unb.br/keycloak")
+	keycloakRealm := getEnv("KEYCLOAK_REALM", "grupo03")
+	keycloakIssuer = keycloakURL + "/realms/" + keycloakRealm
+
+	jwksURL := keycloakIssuer + "/protocol/openid-connect/certs"
+	var err error
+	jwks, err = keyfunc.NewDefaultCtx(context.Background(), []string{jwksURL})
+	if err != nil {
+		log.Fatalf("Não foi possível carregar o JWKS do Keycloak: %v", err)
+	}
 
 	authTarget := getEnv("AUTH_SERVICE_TARGET", "localhost:50052")
 	patientDataTarget := getEnv("PATIENT_DATA_TARGET", "localhost:50051")
@@ -63,11 +75,11 @@ func main() {
 	mux.HandleFunc("GET /api/me/patients", getDoctorPatientsHandler(authClient, pdClient, dtClient))
 	mux.HandleFunc("GET /api/me/supervised-patients", getInternPatientsHandler(authClient, pdClient, dtClient))
 	mux.HandleFunc("GET /api/me/projects", getResearcherProjectsHandler(authClient, pdClient, dtClient))
-	
+
 	mux.Handle("/metrics", promhttp.Handler())
 
-	loggedMux := loggingMiddleware(mux)
+	loggedMux := loggingMiddleware(corsMiddleware(mux))
 
 	log.Println("API Gateway rodando na porta 8080...")
-	log.Fatal(http.ListenAndServe(":" + port, loggedMux))
+	log.Fatal(http.ListenAndServe(":"+port, loggedMux))
 }

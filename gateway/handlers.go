@@ -7,26 +7,18 @@ import (
 	pdpb "gateway-auth-service/proto/patientdata/v1"
 	"io"
 	"net/http"
-	"strings"
 
-	"github.com/golang-jwt/jwt/v5"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
 func getUsernameFromRequest(r *http.Request) string {
-	authHeader := r.Header.Get("Authorization")
-	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-	token, _ := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
-		return jwtSecret, nil
-	})
-
-	if claims, ok := token.Claims.(jwt.MapClaims); ok {
-		if username, ok := claims["username"].(string); ok {
-			return username
-		}
+	claims, err := parseClaims(r)
+	if err != nil {
+		return ""
 	}
-	return ""
+	username, _ := usernameAndRole(claims)
+	return username
 }
 
 func respondWithJSON(w http.ResponseWriter, fhirResponse proto.Message) {
@@ -148,7 +140,7 @@ func getDoctorPatientsHandler(
 			http.Error(w, "Erro ao listar stream de pacientes", http.StatusInternalServerError)
 			return
 		}
-		
+
 		var patientsList []*pdpb.Patient
 		for {
 			patient, err := stream.Recv()
@@ -194,7 +186,7 @@ func getInternPatientsHandler(
 			http.Error(w, "Erro ao listar stream de pacientes supervisionados", http.StatusInternalServerError)
 			return
 		}
-		
+
 		var patientsList []*pdpb.Patient
 		for {
 			patient, err := stream.Recv()
@@ -310,7 +302,7 @@ func getCohortExamsHandler(authClient pb.AuthorizationServiceClient, pdClient pd
 
 			eventsResp, err := pdClient.ListClinicalEvents(context.Background(), &pdpb.ListClinicalEventsRequest{
 				PatientId: patient.PatientId,
-				EventType: "OBSERVATION", 
+				EventType: "OBSERVATION",
 			})
 			if err == nil {
 				patientExamsList = append(patientExamsList, &dtpb.PatientExams{

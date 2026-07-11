@@ -39,10 +39,16 @@ Client (REST, JWT) -> API Gateway (HTTP 8080)
 O gateway lê as seguintes variáveis de ambiente:
 
 - `GATEWAY_PORT`: porta HTTP do gateway, padrão `8080`
-- `JWT_SECRET`: segredo usado para validar tokens JWT, padrão `secret-key`
+- `CORS_ALLOWED_ORIGIN`: origin do frontend liberado pelo middleware de CORS, padrão `http://localhost:5173`
+- `KEYCLOAK_URL`: URL base do Keycloak, padrão `https://kiriland.unb.br/keycloak`
+- `KEYCLOAK_REALM`: realm do Keycloak, padrão `grupo03`
 - `AUTH_SERVICE_TARGET`: endereço gRPC do Authorization Service, padrão `localhost:50052`
 - `PATIENT_DATA_TARGET`: endereço gRPC do Patient Data Service, padrão `localhost:50051`
 - `DATA_TRANSFORM_TARGET`: endereço gRPC do Data Transform Service, padrão `localhost:50053`
+
+O gateway não carrega `.env` automaticamente (sem `godotenv`) — exporte as variáveis no shell ou use `docker compose`/`env $(cat .env | xargs)` antes de rodar `go run .`.
+
+O token (`Authorization: Bearer <TOKEN>`) precisa ser um access_token **RS256** emitido pelo Keycloak configurado acima: o gateway valida a assinatura via JWKS (`{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/certs`), o `iss` e o algoritmo, e extrai `username` de `preferred_username` e `role` da primeira role em `realm_access.roles` que seja `MEDICO`, `ESTAGIARIO` ou `PESQUISADOR`.
 
 ## Quickstart (com Docker)
 
@@ -85,25 +91,17 @@ O gateway expõe estas rotas principais:
 
 ## Tokens de Teste (geração rápida)
 
-Use jwt.io para criar tokens HMAC (HS256) com `secret-key` como assinatura. O gateway lê os campos `username` e `role` do token para autorizar a chamada. Exemplos de payloads:
+Os tokens já não são gerados manualmente (jwt.io/HS256) — eles vêm do Keycloak real via password grant:
 
-- Médico:
-
-```json
-{
-  "username": "med.cardoso",
-  "role": "MEDICO"
-}
+```bash
+curl -X POST "https://kiriland.unb.br/keycloak/realms/grupo03/protocol/openid-connect/token" \
+  -d "grant_type=password" \
+  -d "client_id=pseudopep-frontend" \
+  -d "username=med.cardoso" \
+  -d "password=PseudoPEP2026!" | jq -r .access_token
 ```
 
-- Estagiário:
-
-```json
-{
-  "username": "est.souza",
-  "role": "ESTAGIARIO"
-}
-```
+Usuários de teste disponíveis: `med.*` (role `MEDICO`), `est.*` (role `ESTAGIARIO`), `pes.*` (role `PESQUISADOR`), senha padrão `PseudoPEP2026!`.
 
 Insira o token no header `Authorization: Bearer <TOKEN>` nas requisições.
 
