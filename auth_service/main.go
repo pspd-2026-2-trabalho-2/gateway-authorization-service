@@ -42,40 +42,80 @@ func (s *server) Authorize(ctx context.Context, req *pb.AuthorizeRequest) (*pb.A
 	log.Printf("Validando autorização para usuário: %s, role: %s", req.Username, req.Role)
 
 	if req.Role == "PESQUISADOR" {
-		if req.ProjectId != "" {
-			return &pb.AuthorizeResponse{Decision: pb.Decision_ALLOW, AccessLevel: pb.AccessLevel_ANONYMIZED, Message: "Acesso anonimizado concedido"}, nil
-		}
-		return &pb.AuthorizeResponse{Decision: pb.Decision_DENY, AccessLevel: pb.AccessLevel_DENIED, Message: "Projeto não informado"}, nil
-	}
-
-	if req.TargetPatientId == "" {
-		return &pb.AuthorizeResponse{Decision: pb.Decision_DENY, AccessLevel: pb.AccessLevel_DENIED, Message: "ID do paciente não fornecido"}, nil
-	}
-
-	resp, err := s.patientDataClient.CheckAssignment(ctx, &pdpb.CheckAssignmentRequest{
-		Username:  req.Username,
-		PatientId: req.TargetPatientId,
-		Role:      strings.ToLower(req.Role),
-	})
-
-	if err != nil {
-		log.Printf("Erro ao consultar vínculo no banco: %v", err)
-		return &pb.AuthorizeResponse{Decision: pb.Decision_DENY, AccessLevel: pb.AccessLevel_DENIED, Message: "Erro interno ao validar vínculo"}, nil
-	}
-
-	if !resp.Allowed {
-		return &pb.AuthorizeResponse{Decision: pb.Decision_DENY, AccessLevel: pb.AccessLevel_DENIED, Message: "Profissional não possui vínculo com este paciente"}, nil
+		return &pb.AuthorizeResponse{
+			Decision:    pb.Decision_ALLOW,
+			AccessLevel: pb.AccessLevel_ANONYMIZED,
+			Message:     "Acesso de pesquisador concedido",
+		}, nil
 	}
 
 	if req.Role == "MEDICO" {
-		return &pb.AuthorizeResponse{Decision: pb.Decision_ALLOW, AccessLevel: pb.AccessLevel_FULL, Message: "Acesso total concedido"}, nil
-	}
-	
-	if req.Role == "ESTAGIARIO" {
-		return &pb.AuthorizeResponse{Decision: pb.Decision_ALLOW, AccessLevel: pb.AccessLevel_PARTIAL, Message: "Acesso parcial concedido"}, nil
+		if req.TargetPatientId == "" {
+			return &pb.AuthorizeResponse{
+				Decision:    pb.Decision_ALLOW,
+				AccessLevel: pb.AccessLevel_FULL,
+				Message:     "Listagem de pacientes liberada",
+			}, nil
+		}
+
+		resp, err := s.patientDataClient.CheckAssignment(ctx, &pdpb.CheckAssignmentRequest{
+			Username:  req.Username,
+			PatientId: req.TargetPatientId,
+			Role:      strings.ToLower(req.Role),
+		})
+
+		if err != nil {
+			log.Printf("Erro ao consultar vínculo no banco: %v", err)
+			return &pb.AuthorizeResponse{Decision: pb.Decision_DENY, AccessLevel: pb.AccessLevel_DENIED, Message: "Erro interno ao validar vínculo"}, nil
+		}
+
+		if !resp.Allowed {
+			return &pb.AuthorizeResponse{Decision: pb.Decision_DENY, AccessLevel: pb.AccessLevel_DENIED, Message: "Profissional não possui vínculo com este paciente"}, nil
+		}
+
+		return &pb.AuthorizeResponse{
+			Decision:    pb.Decision_ALLOW,
+			AccessLevel: pb.AccessLevel_FULL,
+			Message:     "Acesso total concedido ao prontuário",
+		}, nil
 	}
 
-	return &pb.AuthorizeResponse{Decision: pb.Decision_DENY, AccessLevel: pb.AccessLevel_DENIED, Message: "Role não reconhecida"}, nil
+	if req.Role == "ESTAGIARIO" {
+		if req.TargetPatientId == "" {
+			return &pb.AuthorizeResponse{
+				Decision:    pb.Decision_ALLOW,
+				AccessLevel: pb.AccessLevel_PARTIAL,
+				Message:     "Listagem de supervisionados liberada",
+			}, nil
+		}
+
+		resp, err := s.patientDataClient.CheckAssignment(ctx, &pdpb.CheckAssignmentRequest{
+			Username:  req.Username,
+			PatientId: req.TargetPatientId,
+			Role:      strings.ToLower(req.Role),
+		})
+
+		if err != nil {
+			log.Printf("Erro ao consultar vínculo no banco: %v", err)
+			return &pb.AuthorizeResponse{Decision: pb.Decision_DENY, AccessLevel: pb.AccessLevel_DENIED, Message: "Erro interno ao validar vínculo"}, nil
+		}
+
+		if !resp.Allowed {
+			return &pb.AuthorizeResponse{Decision: pb.Decision_DENY, AccessLevel: pb.AccessLevel_DENIED, Message: "Estagiário não possui supervisão para este paciente"}, nil
+		}
+
+		return &pb.AuthorizeResponse{
+			Decision:    pb.Decision_ALLOW,
+			AccessLevel: pb.AccessLevel_PARTIAL,
+			Message:     "Acesso parcial concedido ao prontuário",
+		}, nil
+	}
+
+	return &pb.AuthorizeResponse{
+		Decision:    pb.Decision_DENY,
+		AccessLevel: pb.AccessLevel_DENIED,
+		Message:     "Role não reconhecida ou acesso inválido",
+	}, nil
 }
 
 func main() {
