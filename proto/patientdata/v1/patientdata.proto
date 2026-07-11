@@ -118,11 +118,15 @@ message ListPatientsByDoctorRequest {
   string doctor_username = 1;
   int32 page = 2;
   int32 page_size = 3;
+  string search = 4; // opcional; casa full_name ou cpf (substring, case-insensitive)
+  string gender = 5; // opcional; male | female | vazio = todos
 }
 message ListSupervisedPatientsRequest {
   string intern_username = 1;
   int32 page = 2;
   int32 page_size = 3;
+  string search = 4; // opcional; casa full_name ou cpf (substring, case-insensitive)
+  string gender = 5; // opcional; male | female | vazio = todos
 }
 message GetPatientRequest { string patient_id = 1; }
 message ListEncountersRequest { string patient_id = 1; }

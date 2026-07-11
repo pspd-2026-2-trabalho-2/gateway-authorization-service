@@ -808,6 +808,8 @@ type ListPatientsByDoctorRequest struct {
 	DoctorUsername string                 `protobuf:"bytes,1,opt,name=doctor_username,json=doctorUsername,proto3" json:"doctor_username,omitempty"`
 	Page           int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
 	PageSize       int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	Search         string                 `protobuf:"bytes,4,opt,name=search,proto3" json:"search,omitempty"` // opcional; casa full_name ou cpf (substring, case-insensitive)
+	Gender         string                 `protobuf:"bytes,5,opt,name=gender,proto3" json:"gender,omitempty"` // opcional; male | female | vazio = todos
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -863,11 +865,27 @@ func (x *ListPatientsByDoctorRequest) GetPageSize() int32 {
 	return 0
 }
 
+func (x *ListPatientsByDoctorRequest) GetSearch() string {
+	if x != nil {
+		return x.Search
+	}
+	return ""
+}
+
+func (x *ListPatientsByDoctorRequest) GetGender() string {
+	if x != nil {
+		return x.Gender
+	}
+	return ""
+}
+
 type ListSupervisedPatientsRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	InternUsername string                 `protobuf:"bytes,1,opt,name=intern_username,json=internUsername,proto3" json:"intern_username,omitempty"`
 	Page           int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
 	PageSize       int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	Search         string                 `protobuf:"bytes,4,opt,name=search,proto3" json:"search,omitempty"` // opcional; casa full_name ou cpf (substring, case-insensitive)
+	Gender         string                 `protobuf:"bytes,5,opt,name=gender,proto3" json:"gender,omitempty"` // opcional; male | female | vazio = todos
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -921,6 +939,20 @@ func (x *ListSupervisedPatientsRequest) GetPageSize() int32 {
 		return x.PageSize
 	}
 	return 0
+}
+
+func (x *ListSupervisedPatientsRequest) GetSearch() string {
+	if x != nil {
+		return x.Search
+	}
+	return ""
+}
+
+func (x *ListSupervisedPatientsRequest) GetGender() string {
+	if x != nil {
+		return x.Gender
+	}
+	return ""
 }
 
 type GetPatientRequest struct {
@@ -1476,15 +1508,19 @@ const file_patientdata_proto_rawDesc = "" +
 	"\x11ClinicalEventList\x125\n" +
 	"\x06events\x18\x01 \x03(\v2\x1d.patientdata.v1.ClinicalEventR\x06events\"B\n" +
 	"\vProjectList\x123\n" +
-	"\bprojects\x18\x01 \x03(\v2\x17.patientdata.v1.ProjectR\bprojects\"w\n" +
+	"\bprojects\x18\x01 \x03(\v2\x17.patientdata.v1.ProjectR\bprojects\"\xa7\x01\n" +
 	"\x1bListPatientsByDoctorRequest\x12'\n" +
 	"\x0fdoctor_username\x18\x01 \x01(\tR\x0edoctorUsername\x12\x12\n" +
 	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"y\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x16\n" +
+	"\x06search\x18\x04 \x01(\tR\x06search\x12\x16\n" +
+	"\x06gender\x18\x05 \x01(\tR\x06gender\"\xa9\x01\n" +
 	"\x1dListSupervisedPatientsRequest\x12'\n" +
 	"\x0fintern_username\x18\x01 \x01(\tR\x0einternUsername\x12\x12\n" +
 	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"2\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x16\n" +
+	"\x06search\x18\x04 \x01(\tR\x06search\x12\x16\n" +
+	"\x06gender\x18\x05 \x01(\tR\x06gender\"2\n" +
 	"\x11GetPatientRequest\x12\x1d\n" +
 	"\n" +
 	"patient_id\x18\x01 \x01(\tR\tpatientId\"6\n" +

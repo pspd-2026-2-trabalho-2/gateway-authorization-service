@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -46,6 +47,26 @@ func parsePagination(r *http.Request) (page, pageSize int32) {
 		pageSize = maxPageSize
 	}
 	return page, pageSize
+}
+
+// maxSearchLen limita o tamanho de ?search= repassado ao patient-data-service.
+const maxSearchLen = 100
+
+// parseSearchAndGender lê ?search=&gender= da query string. search é aparado
+// e truncado em maxSearchLen caracteres; gender precisa ser "", "male" ou
+// "female" (ok=false caso contrário, indicando erro 400 para o chamador).
+func parseSearchAndGender(r *http.Request) (search, gender string, ok bool) {
+	search = strings.TrimSpace(r.URL.Query().Get("search"))
+	if len(search) > maxSearchLen {
+		search = search[:maxSearchLen]
+	}
+	gender = r.URL.Query().Get("gender")
+	switch gender {
+	case "", "male", "female":
+		return search, gender, true
+	default:
+		return search, gender, false
+	}
 }
 
 // setPaginationHeaders anota a resposta com metadados de paginação. patients é
@@ -177,11 +198,18 @@ func getDoctorPatientsHandler(
 
 		username := getUsernameFromRequest(r)
 		page, pageSize := parsePagination(r)
+		search, gender, ok := parseSearchAndGender(r)
+		if !ok {
+			http.Error(w, "Parâmetro gender inválido", http.StatusBadRequest)
+			return
+		}
 
 		stream, err := pdClient.ListPatientsByDoctor(context.Background(), &pdpb.ListPatientsByDoctorRequest{
 			DoctorUsername: username,
 			Page:           page,
 			PageSize:       pageSize,
+			Search:         search,
+			Gender:         gender,
 		})
 		if err != nil {
 			http.Error(w, "Erro ao listar stream de pacientes", http.StatusInternalServerError)
@@ -230,11 +258,18 @@ func getInternPatientsHandler(
 
 		username := getUsernameFromRequest(r)
 		page, pageSize := parsePagination(r)
+		search, gender, ok := parseSearchAndGender(r)
+		if !ok {
+			http.Error(w, "Parâmetro gender inválido", http.StatusBadRequest)
+			return
+		}
 
 		stream, err := pdClient.ListSupervisedPatients(context.Background(), &pdpb.ListSupervisedPatientsRequest{
 			InternUsername: username,
 			Page:           page,
 			PageSize:       pageSize,
+			Search:         search,
+			Gender:         gender,
 		})
 		if err != nil {
 			http.Error(w, "Erro ao listar stream de pacientes supervisionados", http.StatusInternalServerError)
