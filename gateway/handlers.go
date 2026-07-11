@@ -2,14 +2,24 @@ package main
 
 import (
 	"context"
+	"fmt"
 	pb "gateway-auth-service/proto"
 	dtpb "gateway-auth-service/proto/datatransform/v1"
 	pdpb "gateway-auth-service/proto/patientdata/v1"
 	"io"
 	"net/http"
+	"strconv"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+)
+
+// Paginação de listas de pacientes: precisa bater com os limites do
+// patient-data-service (internal/service.limitOffset) para que hasMore seja
+// calculado corretamente a partir do tamanho de página efetivamente pedido.
+const (
+	defaultPageSize = 50
+	maxPageSize     = 200
 )
 
 func getUsernameFromRequest(r *http.Request) string {
@@ -19,6 +29,38 @@ func getUsernameFromRequest(r *http.Request) string {
 	}
 	username, _ := usernameAndRole(claims)
 	return username
+}
+
+// parsePagination lê ?page=&pageSize= da query string, com defaults e limites
+// seguros (mesmos do patient-data-service).
+func parsePagination(r *http.Request) (page, pageSize int32) {
+	page = 1
+	if v, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil && v > 0 {
+		page = int32(v)
+	}
+	pageSize = defaultPageSize
+	if v, err := strconv.Atoi(r.URL.Query().Get("pageSize")); err == nil && v > 0 {
+		pageSize = int32(v)
+	}
+	if pageSize > maxPageSize {
+		pageSize = maxPageSize
+	}
+	return page, pageSize
+}
+
+// setPaginationHeaders anota a resposta com metadados de paginação. patients é
+// a lista já recebida (até pageSize+1 itens); a função trunca para pageSize e
+// devolve a lista pronta para ser enviada ao data-transform-service.
+func setPaginationHeaders[T any](w http.ResponseWriter, page, pageSize int32, patients []T) []T {
+	hasMore := len(patients) > int(pageSize)
+	if hasMore {
+		patients = patients[:pageSize]
+	}
+	w.Header().Set("X-Page", strconv.Itoa(int(page)))
+	w.Header().Set("X-Page-Size", strconv.Itoa(int(pageSize)))
+	w.Header().Set("X-Has-More", fmt.Sprintf("%t", hasMore))
+	w.Header().Set("Access-Control-Expose-Headers", "X-Page, X-Page-Size, X-Has-More")
+	return patients
 }
 
 func respondWithJSON(w http.ResponseWriter, fhirResponse proto.Message) {
@@ -134,8 +176,13 @@ func getDoctorPatientsHandler(
 		}
 
 		username := getUsernameFromRequest(r)
+		page, pageSize := parsePagination(r)
 
-		stream, err := pdClient.ListPatientsByDoctor(context.Background(), &pdpb.ListPatientsByDoctorRequest{DoctorUsername: username})
+		stream, err := pdClient.ListPatientsByDoctor(context.Background(), &pdpb.ListPatientsByDoctorRequest{
+			DoctorUsername: username,
+			Page:           page,
+			PageSize:       pageSize,
+		})
 		if err != nil {
 			http.Error(w, "Erro ao listar stream de pacientes", http.StatusInternalServerError)
 			return
@@ -154,6 +201,7 @@ func getDoctorPatientsHandler(
 			}
 			patientsList = append(patientsList, patient)
 		}
+		patientsList = setPaginationHeaders(w, page, pageSize, patientsList)
 
 		fhirResponse, err := dtClient.TransformPatientList(context.Background(), &dtpb.TransformPatientListRequest{
 			Patients:    patientsList,
@@ -181,7 +229,13 @@ func getInternPatientsHandler(
 		}
 
 		username := getUsernameFromRequest(r)
-		stream, err := pdClient.ListPatientsByDoctor(context.Background(), &pdpb.ListPatientsByDoctorRequest{DoctorUsername: username})
+		page, pageSize := parsePagination(r)
+
+		stream, err := pdClient.ListSupervisedPatients(context.Background(), &pdpb.ListSupervisedPatientsRequest{
+			InternUsername: username,
+			Page:           page,
+			PageSize:       pageSize,
+		})
 		if err != nil {
 			http.Error(w, "Erro ao listar stream de pacientes supervisionados", http.StatusInternalServerError)
 			return
@@ -200,6 +254,7 @@ func getInternPatientsHandler(
 			}
 			patientsList = append(patientsList, patient)
 		}
+		patientsList = setPaginationHeaders(w, page, pageSize, patientsList)
 
 		fhirResponse, err := dtClient.TransformPatientList(context.Background(), &dtpb.TransformPatientListRequest{
 			Patients:    patientsList,

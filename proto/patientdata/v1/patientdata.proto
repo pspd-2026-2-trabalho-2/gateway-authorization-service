@@ -113,8 +113,17 @@ message ProjectList { repeated Project projects = 1; }
 
 // ---------- Requests ----------
 
-message ListPatientsByDoctorRequest { string doctor_username = 1; }
-message ListSupervisedPatientsRequest { string intern_username = 1; }
+// page é 1-based; page <= 0 ou page_size <= 0 usam os padrões do servidor.
+message ListPatientsByDoctorRequest {
+  string doctor_username = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+message ListSupervisedPatientsRequest {
+  string intern_username = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
 message GetPatientRequest { string patient_id = 1; }
 message ListEncountersRequest { string patient_id = 1; }
 message ListClinicalEventsRequest {
