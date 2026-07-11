@@ -9,10 +9,10 @@ option go_package = "gateway-authorization-service/proto/patientdata/v1;patientd
 // dos níveis de acesso (FULL/PARTIAL/ANONYMIZED/AGGREGATED) e a conversão para
 // HL7/FHIR são responsabilidade do data-transform-service.
 service PatientDataService {
-  // Pacientes sob responsabilidade de um médico.
-  rpc ListPatientsByDoctor(ListPatientsByDoctorRequest) returns (PatientList);
-  // Pacientes supervisionados de um estagiário.
-  rpc ListSupervisedPatients(ListSupervisedPatientsRequest) returns (PatientList);
+  // Pacientes sob responsabilidade de um médico (server streaming: um Patient por vez).
+  rpc ListPatientsByDoctor(ListPatientsByDoctorRequest) returns (stream Patient);
+  // Pacientes supervisionados de um estagiário (server streaming).
+  rpc ListSupervisedPatients(ListSupervisedPatientsRequest) returns (stream Patient);
   // Dados cadastrais de um paciente.
   rpc GetPatient(GetPatientRequest) returns (Patient);
   // Atendimentos de um paciente.
@@ -23,8 +23,9 @@ service PatientDataService {
   rpc GetClinicalSummary(GetClinicalSummaryRequest) returns (ClinicalSummary);
   // Histórico clínico temporal (eventos ordenados por data).
   rpc GetClinicalHistory(GetClinicalHistoryRequest) returns (ClinicalEventList);
-  // Pacientes de uma coorte (todos com uma dada condição clínica).
-  rpc ListCohortPatients(ListCohortPatientsRequest) returns (PatientList);
+  // Pacientes de uma coorte (todos com uma dada condição clínica). Server streaming:
+  // envia um Patient por vez, sem bufferizar coortes de dezenas de milhares de registros.
+  rpc ListCohortPatients(ListCohortPatientsRequest) returns (stream Patient);
   // Estatísticas agregadas de uma coorte.
   rpc GetCohortStatistics(GetCohortStatisticsRequest) returns (CohortStatistics);
   // Projetos de pesquisa de um pesquisador.

@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v3.19.6
-// source: proto/patientdata/v1/patientdata.proto
+// source: patientdata.proto
 
 package patientdatav1
 
@@ -41,10 +41,10 @@ const (
 // dos níveis de acesso (FULL/PARTIAL/ANONYMIZED/AGGREGATED) e a conversão para
 // HL7/FHIR são responsabilidade do data-transform-service.
 type PatientDataServiceClient interface {
-	// Pacientes sob responsabilidade de um médico.
-	ListPatientsByDoctor(ctx context.Context, in *ListPatientsByDoctorRequest, opts ...grpc.CallOption) (*PatientList, error)
-	// Pacientes supervisionados de um estagiário.
-	ListSupervisedPatients(ctx context.Context, in *ListSupervisedPatientsRequest, opts ...grpc.CallOption) (*PatientList, error)
+	// Pacientes sob responsabilidade de um médico (server streaming: um Patient por vez).
+	ListPatientsByDoctor(ctx context.Context, in *ListPatientsByDoctorRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Patient], error)
+	// Pacientes supervisionados de um estagiário (server streaming).
+	ListSupervisedPatients(ctx context.Context, in *ListSupervisedPatientsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Patient], error)
 	// Dados cadastrais de um paciente.
 	GetPatient(ctx context.Context, in *GetPatientRequest, opts ...grpc.CallOption) (*Patient, error)
 	// Atendimentos de um paciente.
@@ -55,8 +55,9 @@ type PatientDataServiceClient interface {
 	GetClinicalSummary(ctx context.Context, in *GetClinicalSummaryRequest, opts ...grpc.CallOption) (*ClinicalSummary, error)
 	// Histórico clínico temporal (eventos ordenados por data).
 	GetClinicalHistory(ctx context.Context, in *GetClinicalHistoryRequest, opts ...grpc.CallOption) (*ClinicalEventList, error)
-	// Pacientes de uma coorte (todos com uma dada condição clínica).
-	ListCohortPatients(ctx context.Context, in *ListCohortPatientsRequest, opts ...grpc.CallOption) (*PatientList, error)
+	// Pacientes de uma coorte (todos com uma dada condição clínica). Server streaming:
+	// envia um Patient por vez, sem bufferizar coortes de dezenas de milhares de registros.
+	ListCohortPatients(ctx context.Context, in *ListCohortPatientsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Patient], error)
 	// Estatísticas agregadas de uma coorte.
 	GetCohortStatistics(ctx context.Context, in *GetCohortStatisticsRequest, opts ...grpc.CallOption) (*CohortStatistics, error)
 	// Projetos de pesquisa de um pesquisador.
@@ -73,25 +74,43 @@ func NewPatientDataServiceClient(cc grpc.ClientConnInterface) PatientDataService
 	return &patientDataServiceClient{cc}
 }
 
-func (c *patientDataServiceClient) ListPatientsByDoctor(ctx context.Context, in *ListPatientsByDoctorRequest, opts ...grpc.CallOption) (*PatientList, error) {
+func (c *patientDataServiceClient) ListPatientsByDoctor(ctx context.Context, in *ListPatientsByDoctorRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Patient], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PatientList)
-	err := c.cc.Invoke(ctx, PatientDataService_ListPatientsByDoctor_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &PatientDataService_ServiceDesc.Streams[0], PatientDataService_ListPatientsByDoctor_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &grpc.GenericClientStream[ListPatientsByDoctorRequest, Patient]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
 }
 
-func (c *patientDataServiceClient) ListSupervisedPatients(ctx context.Context, in *ListSupervisedPatientsRequest, opts ...grpc.CallOption) (*PatientList, error) {
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type PatientDataService_ListPatientsByDoctorClient = grpc.ServerStreamingClient[Patient]
+
+func (c *patientDataServiceClient) ListSupervisedPatients(ctx context.Context, in *ListSupervisedPatientsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Patient], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PatientList)
-	err := c.cc.Invoke(ctx, PatientDataService_ListSupervisedPatients_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &PatientDataService_ServiceDesc.Streams[1], PatientDataService_ListSupervisedPatients_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &grpc.GenericClientStream[ListSupervisedPatientsRequest, Patient]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type PatientDataService_ListSupervisedPatientsClient = grpc.ServerStreamingClient[Patient]
 
 func (c *patientDataServiceClient) GetPatient(ctx context.Context, in *GetPatientRequest, opts ...grpc.CallOption) (*Patient, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -143,15 +162,24 @@ func (c *patientDataServiceClient) GetClinicalHistory(ctx context.Context, in *G
 	return out, nil
 }
 
-func (c *patientDataServiceClient) ListCohortPatients(ctx context.Context, in *ListCohortPatientsRequest, opts ...grpc.CallOption) (*PatientList, error) {
+func (c *patientDataServiceClient) ListCohortPatients(ctx context.Context, in *ListCohortPatientsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Patient], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PatientList)
-	err := c.cc.Invoke(ctx, PatientDataService_ListCohortPatients_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &PatientDataService_ServiceDesc.Streams[2], PatientDataService_ListCohortPatients_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &grpc.GenericClientStream[ListCohortPatientsRequest, Patient]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type PatientDataService_ListCohortPatientsClient = grpc.ServerStreamingClient[Patient]
 
 func (c *patientDataServiceClient) GetCohortStatistics(ctx context.Context, in *GetCohortStatisticsRequest, opts ...grpc.CallOption) (*CohortStatistics, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -192,10 +220,10 @@ func (c *patientDataServiceClient) CheckAssignment(ctx context.Context, in *Chec
 // dos níveis de acesso (FULL/PARTIAL/ANONYMIZED/AGGREGATED) e a conversão para
 // HL7/FHIR são responsabilidade do data-transform-service.
 type PatientDataServiceServer interface {
-	// Pacientes sob responsabilidade de um médico.
-	ListPatientsByDoctor(context.Context, *ListPatientsByDoctorRequest) (*PatientList, error)
-	// Pacientes supervisionados de um estagiário.
-	ListSupervisedPatients(context.Context, *ListSupervisedPatientsRequest) (*PatientList, error)
+	// Pacientes sob responsabilidade de um médico (server streaming: um Patient por vez).
+	ListPatientsByDoctor(*ListPatientsByDoctorRequest, grpc.ServerStreamingServer[Patient]) error
+	// Pacientes supervisionados de um estagiário (server streaming).
+	ListSupervisedPatients(*ListSupervisedPatientsRequest, grpc.ServerStreamingServer[Patient]) error
 	// Dados cadastrais de um paciente.
 	GetPatient(context.Context, *GetPatientRequest) (*Patient, error)
 	// Atendimentos de um paciente.
@@ -206,8 +234,9 @@ type PatientDataServiceServer interface {
 	GetClinicalSummary(context.Context, *GetClinicalSummaryRequest) (*ClinicalSummary, error)
 	// Histórico clínico temporal (eventos ordenados por data).
 	GetClinicalHistory(context.Context, *GetClinicalHistoryRequest) (*ClinicalEventList, error)
-	// Pacientes de uma coorte (todos com uma dada condição clínica).
-	ListCohortPatients(context.Context, *ListCohortPatientsRequest) (*PatientList, error)
+	// Pacientes de uma coorte (todos com uma dada condição clínica). Server streaming:
+	// envia um Patient por vez, sem bufferizar coortes de dezenas de milhares de registros.
+	ListCohortPatients(*ListCohortPatientsRequest, grpc.ServerStreamingServer[Patient]) error
 	// Estatísticas agregadas de uma coorte.
 	GetCohortStatistics(context.Context, *GetCohortStatisticsRequest) (*CohortStatistics, error)
 	// Projetos de pesquisa de um pesquisador.
@@ -224,11 +253,11 @@ type PatientDataServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedPatientDataServiceServer struct{}
 
-func (UnimplementedPatientDataServiceServer) ListPatientsByDoctor(context.Context, *ListPatientsByDoctorRequest) (*PatientList, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListPatientsByDoctor not implemented")
+func (UnimplementedPatientDataServiceServer) ListPatientsByDoctor(*ListPatientsByDoctorRequest, grpc.ServerStreamingServer[Patient]) error {
+	return status.Error(codes.Unimplemented, "method ListPatientsByDoctor not implemented")
 }
-func (UnimplementedPatientDataServiceServer) ListSupervisedPatients(context.Context, *ListSupervisedPatientsRequest) (*PatientList, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListSupervisedPatients not implemented")
+func (UnimplementedPatientDataServiceServer) ListSupervisedPatients(*ListSupervisedPatientsRequest, grpc.ServerStreamingServer[Patient]) error {
+	return status.Error(codes.Unimplemented, "method ListSupervisedPatients not implemented")
 }
 func (UnimplementedPatientDataServiceServer) GetPatient(context.Context, *GetPatientRequest) (*Patient, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetPatient not implemented")
@@ -245,8 +274,8 @@ func (UnimplementedPatientDataServiceServer) GetClinicalSummary(context.Context,
 func (UnimplementedPatientDataServiceServer) GetClinicalHistory(context.Context, *GetClinicalHistoryRequest) (*ClinicalEventList, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetClinicalHistory not implemented")
 }
-func (UnimplementedPatientDataServiceServer) ListCohortPatients(context.Context, *ListCohortPatientsRequest) (*PatientList, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListCohortPatients not implemented")
+func (UnimplementedPatientDataServiceServer) ListCohortPatients(*ListCohortPatientsRequest, grpc.ServerStreamingServer[Patient]) error {
+	return status.Error(codes.Unimplemented, "method ListCohortPatients not implemented")
 }
 func (UnimplementedPatientDataServiceServer) GetCohortStatistics(context.Context, *GetCohortStatisticsRequest) (*CohortStatistics, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetCohortStatistics not implemented")
@@ -278,41 +307,27 @@ func RegisterPatientDataServiceServer(s grpc.ServiceRegistrar, srv PatientDataSe
 	s.RegisterService(&PatientDataService_ServiceDesc, srv)
 }
 
-func _PatientDataService_ListPatientsByDoctor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListPatientsByDoctorRequest)
-	if err := dec(in); err != nil {
-		return nil, err
+func _PatientDataService_ListPatientsByDoctor_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ListPatientsByDoctorRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(PatientDataServiceServer).ListPatientsByDoctor(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: PatientDataService_ListPatientsByDoctor_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PatientDataServiceServer).ListPatientsByDoctor(ctx, req.(*ListPatientsByDoctorRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(PatientDataServiceServer).ListPatientsByDoctor(m, &grpc.GenericServerStream[ListPatientsByDoctorRequest, Patient]{ServerStream: stream})
 }
 
-func _PatientDataService_ListSupervisedPatients_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListSupervisedPatientsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type PatientDataService_ListPatientsByDoctorServer = grpc.ServerStreamingServer[Patient]
+
+func _PatientDataService_ListSupervisedPatients_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ListSupervisedPatientsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(PatientDataServiceServer).ListSupervisedPatients(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: PatientDataService_ListSupervisedPatients_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PatientDataServiceServer).ListSupervisedPatients(ctx, req.(*ListSupervisedPatientsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(PatientDataServiceServer).ListSupervisedPatients(m, &grpc.GenericServerStream[ListSupervisedPatientsRequest, Patient]{ServerStream: stream})
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type PatientDataService_ListSupervisedPatientsServer = grpc.ServerStreamingServer[Patient]
 
 func _PatientDataService_GetPatient_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetPatientRequest)
@@ -404,23 +419,16 @@ func _PatientDataService_GetClinicalHistory_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PatientDataService_ListCohortPatients_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListCohortPatientsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
+func _PatientDataService_ListCohortPatients_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ListCohortPatientsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(PatientDataServiceServer).ListCohortPatients(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: PatientDataService_ListCohortPatients_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PatientDataServiceServer).ListCohortPatients(ctx, req.(*ListCohortPatientsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(PatientDataServiceServer).ListCohortPatients(m, &grpc.GenericServerStream[ListCohortPatientsRequest, Patient]{ServerStream: stream})
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type PatientDataService_ListCohortPatientsServer = grpc.ServerStreamingServer[Patient]
 
 func _PatientDataService_GetCohortStatistics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetCohortStatisticsRequest)
@@ -484,14 +492,6 @@ var PatientDataService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*PatientDataServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "ListPatientsByDoctor",
-			Handler:    _PatientDataService_ListPatientsByDoctor_Handler,
-		},
-		{
-			MethodName: "ListSupervisedPatients",
-			Handler:    _PatientDataService_ListSupervisedPatients_Handler,
-		},
-		{
 			MethodName: "GetPatient",
 			Handler:    _PatientDataService_GetPatient_Handler,
 		},
@@ -512,10 +512,6 @@ var PatientDataService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _PatientDataService_GetClinicalHistory_Handler,
 		},
 		{
-			MethodName: "ListCohortPatients",
-			Handler:    _PatientDataService_ListCohortPatients_Handler,
-		},
-		{
 			MethodName: "GetCohortStatistics",
 			Handler:    _PatientDataService_GetCohortStatistics_Handler,
 		},
@@ -528,6 +524,22 @@ var PatientDataService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _PatientDataService_CheckAssignment_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/patientdata/v1/patientdata.proto",
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "ListPatientsByDoctor",
+			Handler:       _PatientDataService_ListPatientsByDoctor_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "ListSupervisedPatients",
+			Handler:       _PatientDataService_ListSupervisedPatients_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "ListCohortPatients",
+			Handler:       _PatientDataService_ListCohortPatients_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "patientdata.proto",
 }

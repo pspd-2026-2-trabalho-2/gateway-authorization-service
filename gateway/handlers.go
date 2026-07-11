@@ -5,6 +5,7 @@ import (
 	pb "gateway-auth-service/proto"
 	dtpb "gateway-auth-service/proto/datatransform/v1"
 	pdpb "gateway-auth-service/proto/patientdata/v1"
+	"io"
 	"net/http"
 	"strings"
 
@@ -128,7 +129,11 @@ func getCohortStatisticsHandler(authClient pb.AuthorizationServiceClient, pdClie
 	}
 }
 
-func getDoctorPatientsHandler(authClient pb.AuthorizationServiceClient, pdClient pdpb.PatientDataServiceClient, dtClient dtpb.DataTransformServiceClient) http.HandlerFunc {
+func getDoctorPatientsHandler(
+	authClient pb.AuthorizationServiceClient,
+	pdClient pdpb.PatientDataServiceClient,
+	dtClient dtpb.DataTransformServiceClient,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, err := checkAuth(r, authClient, "", "")
 		if err != nil {
@@ -137,16 +142,32 @@ func getDoctorPatientsHandler(authClient pb.AuthorizationServiceClient, pdClient
 		}
 
 		username := getUsernameFromRequest(r)
-		rawList, err := pdClient.ListPatientsByDoctor(context.Background(), &pdpb.ListPatientsByDoctorRequest{DoctorUsername: username})
+
+		stream, err := pdClient.ListPatientsByDoctor(context.Background(), &pdpb.ListPatientsByDoctorRequest{DoctorUsername: username})
 		if err != nil {
-			http.Error(w, "Erro ao listar pacientes do médico", http.StatusInternalServerError)
+			http.Error(w, "Erro ao listar stream de pacientes", http.StatusInternalServerError)
 			return
+		}
+		
+		var patientsList []*pdpb.Patient
+		for {
+			patient, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
+
+			if err != nil {
+				http.Error(w, "Erro ao ler stream de pacientes", http.StatusInternalServerError)
+				return
+			}
+			patientsList = append(patientsList, patient)
 		}
 
 		fhirResponse, err := dtClient.TransformPatientList(context.Background(), &dtpb.TransformPatientListRequest{
-			Patients:    rawList.Patients,
+			Patients:    patientsList,
 			AccessLevel: dtpb.AccessLevel_FULL,
 		})
+
 		if err != nil {
 			http.Error(w, "Erro na formatação da lista", http.StatusInternalServerError)
 			return
@@ -155,7 +176,11 @@ func getDoctorPatientsHandler(authClient pb.AuthorizationServiceClient, pdClient
 	}
 }
 
-func getInternPatientsHandler(authClient pb.AuthorizationServiceClient, pdClient pdpb.PatientDataServiceClient, dtClient dtpb.DataTransformServiceClient) http.HandlerFunc {
+func getInternPatientsHandler(
+	authClient pb.AuthorizationServiceClient,
+	pdClient pdpb.PatientDataServiceClient,
+	dtClient dtpb.DataTransformServiceClient,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, err := checkAuth(r, authClient, "", "")
 		if err != nil {
@@ -164,16 +189,31 @@ func getInternPatientsHandler(authClient pb.AuthorizationServiceClient, pdClient
 		}
 
 		username := getUsernameFromRequest(r)
-		rawList, err := pdClient.ListSupervisedPatients(context.Background(), &pdpb.ListSupervisedPatientsRequest{InternUsername: username})
+		stream, err := pdClient.ListPatientsByDoctor(context.Background(), &pdpb.ListPatientsByDoctorRequest{DoctorUsername: username})
 		if err != nil {
-			http.Error(w, "Erro ao listar pacientes supervisionados", http.StatusInternalServerError)
+			http.Error(w, "Erro ao listar stream de pacientes supervisionados", http.StatusInternalServerError)
 			return
+		}
+		
+		var patientsList []*pdpb.Patient
+		for {
+			patient, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
+
+			if err != nil {
+				http.Error(w, "Erro ao ler stream de pacientes", http.StatusInternalServerError)
+				return
+			}
+			patientsList = append(patientsList, patient)
 		}
 
 		fhirResponse, err := dtClient.TransformPatientList(context.Background(), &dtpb.TransformPatientListRequest{
-			Patients:    rawList.Patients,
+			Patients:    patientsList,
 			AccessLevel: dtpb.AccessLevel_PARTIAL,
 		})
+
 		if err != nil {
 			http.Error(w, "Erro na formatação da lista", http.StatusInternalServerError)
 			return
@@ -251,17 +291,26 @@ func getCohortExamsHandler(authClient pb.AuthorizationServiceClient, pdClient pd
 			return
 		}
 
-		rawPatients, err := pdClient.ListCohortPatients(context.Background(), &pdpb.ListCohortPatientsRequest{ConditionCode: condition})
+		stream, err := pdClient.ListCohortPatients(context.Background(), &pdpb.ListCohortPatientsRequest{ConditionCode: condition})
 		if err != nil {
-			http.Error(w, "Erro ao buscar pacientes da coorte", http.StatusInternalServerError)
+			http.Error(w, "Erro ao iniciar stream da coorte", http.StatusInternalServerError)
 			return
 		}
 
 		var patientExamsList []*dtpb.PatientExams
-		for _, patient := range rawPatients.Patients {
+		for {
+			patient, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				http.Error(w, "Erro ao ler stream de pacientes da coorte", http.StatusInternalServerError)
+				return
+			}
+
 			eventsResp, err := pdClient.ListClinicalEvents(context.Background(), &pdpb.ListClinicalEventsRequest{
-				PatientId: patient.GetPatientId(),
-				EventType: "Observation",
+				PatientId: patient.PatientId,
+				EventType: "OBSERVATION", 
 			})
 			if err == nil {
 				patientExamsList = append(patientExamsList, &dtpb.PatientExams{
