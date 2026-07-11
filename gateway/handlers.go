@@ -57,8 +57,8 @@ const maxSearchLen = 100
 // "female" (ok=false caso contrário, indicando erro 400 para o chamador).
 func parseSearchAndGender(r *http.Request) (search, gender string, ok bool) {
 	search = strings.TrimSpace(r.URL.Query().Get("search"))
-	if len(search) > maxSearchLen {
-		search = search[:maxSearchLen]
+	if runes := []rune(search); len(runes) > maxSearchLen {
+		search = string(runes[:maxSearchLen])
 	}
 	gender = r.URL.Query().Get("gender")
 	switch gender {
