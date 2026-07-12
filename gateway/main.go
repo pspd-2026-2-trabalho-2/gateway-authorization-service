@@ -27,6 +27,9 @@ func getEnv(key, fallback string) string {
 func main() {
 	port := getEnv("GATEWAY_PORT", "8080")
 	corsAllowedOrigin = getEnv("CORS_ALLOWED_ORIGIN", "http://localhost:5173")
+
+	roleFallbackEnabled = getEnv("KEYCLOAK_ROLE_FALLBACK_ENABLED", "false") == "true"
+	
 	keycloakURL := getEnv("KEYCLOAK_URL", "https://kiriland.unb.br/keycloak")
 	keycloakRealm := getEnv("KEYCLOAK_REALM", "grupo03")
 	keycloakIssuer = keycloakURL + "/realms/" + keycloakRealm
