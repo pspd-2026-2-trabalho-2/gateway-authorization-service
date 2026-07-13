@@ -83,7 +83,7 @@ O gateway expõe estas rotas principais:
 - `GET /api/patients/{id}/summary`: resumo clínico do paciente
 - `GET /api/patients/{id}/history`: histórico clínico do paciente
 - `GET /api/cohorts/{condition}/statistics`: estatísticas agregadas da coorte
-- `GET /api/cohorts/{condition}/exams`: exames da coorte com anonimização/transformação
+- `GET /api/cohorts/{condition}/exams?page=&pageSize=`: exames da coorte com anonimização/transformação (paginado; mesma convenção de `page`/`pageSize`/`X-Page`/`X-Page-Size`/`X-Has-More` de `/api/me/patients` — cada página busca os pacientes e os eventos clínicos em 2 queries no patient-data-service, sem N+1)
 - `GET /api/me/patients?page=&pageSize=`: pacientes de médicos (paginado; `page` 1-based, `pageSize` padrão 50, máx. 200 — protege o limite de mensagem gRPC de 4MB entre o gateway e o data-transform-service. A resposta traz os headers `X-Page`, `X-Page-Size`, `X-Has-More`)
 - `GET /api/me/supervised-patients?page=&pageSize=`: pacientes supervisionados por estagiários (mesma paginação)
 - `GET /api/me/projects`: projetos de pesquisadores

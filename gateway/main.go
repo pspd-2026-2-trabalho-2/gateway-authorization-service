@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/MicahParks/keyfunc/v3"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -24,12 +25,22 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
+func getEnvDuration(key string, fallback time.Duration) time.Duration {
+	if value, exists := os.LookupEnv(key); exists {
+		if d, err := time.ParseDuration(value); err == nil {
+			return d
+		}
+	}
+	return fallback
+}
+
 func main() {
 	port := getEnv("GATEWAY_PORT", "8080")
 	corsAllowedOrigin = getEnv("CORS_ALLOWED_ORIGIN", "http://localhost:5173")
+	downstreamTimeout = getEnvDuration("DOWNSTREAM_TIMEOUT", 15*time.Second)
 
 	roleFallbackEnabled = getEnv("KEYCLOAK_ROLE_FALLBACK_ENABLED", "false") == "true"
-	
+
 	keycloakURL := getEnv("KEYCLOAK_URL", "https://kiriland.unb.br/keycloak")
 	keycloakRealm := getEnv("KEYCLOAK_REALM", "grupo03")
 	keycloakIssuer = keycloakURL + "/realms/" + keycloakRealm

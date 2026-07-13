@@ -802,6 +802,103 @@ func (x *ProjectList) GetProjects() []*Project {
 	return nil
 }
 
+// Um paciente da coorte com seus eventos clínicos já anexados.
+type PatientExams struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Patient       *Patient               `protobuf:"bytes,1,opt,name=patient,proto3" json:"patient,omitempty"`
+	Exams         []*ClinicalEvent       `protobuf:"bytes,2,rep,name=exams,proto3" json:"exams,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PatientExams) Reset() {
+	*x = PatientExams{}
+	mi := &file_patientdata_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PatientExams) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PatientExams) ProtoMessage() {}
+
+func (x *PatientExams) ProtoReflect() protoreflect.Message {
+	mi := &file_patientdata_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PatientExams.ProtoReflect.Descriptor instead.
+func (*PatientExams) Descriptor() ([]byte, []int) {
+	return file_patientdata_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *PatientExams) GetPatient() *Patient {
+	if x != nil {
+		return x.Patient
+	}
+	return nil
+}
+
+func (x *PatientExams) GetExams() []*ClinicalEvent {
+	if x != nil {
+		return x.Exams
+	}
+	return nil
+}
+
+type CohortExamsList struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Patients      []*PatientExams        `protobuf:"bytes,1,rep,name=patients,proto3" json:"patients,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CohortExamsList) Reset() {
+	*x = CohortExamsList{}
+	mi := &file_patientdata_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CohortExamsList) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CohortExamsList) ProtoMessage() {}
+
+func (x *CohortExamsList) ProtoReflect() protoreflect.Message {
+	mi := &file_patientdata_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CohortExamsList.ProtoReflect.Descriptor instead.
+func (*CohortExamsList) Descriptor() ([]byte, []int) {
+	return file_patientdata_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *CohortExamsList) GetPatients() []*PatientExams {
+	if x != nil {
+		return x.Patients
+	}
+	return nil
+}
+
 // page é 1-based; page <= 0 ou page_size <= 0 usam os padrões do servidor.
 type ListPatientsByDoctorRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
@@ -816,7 +913,7 @@ type ListPatientsByDoctorRequest struct {
 
 func (x *ListPatientsByDoctorRequest) Reset() {
 	*x = ListPatientsByDoctorRequest{}
-	mi := &file_patientdata_proto_msgTypes[11]
+	mi := &file_patientdata_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -828,7 +925,7 @@ func (x *ListPatientsByDoctorRequest) String() string {
 func (*ListPatientsByDoctorRequest) ProtoMessage() {}
 
 func (x *ListPatientsByDoctorRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_patientdata_proto_msgTypes[11]
+	mi := &file_patientdata_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -841,7 +938,7 @@ func (x *ListPatientsByDoctorRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPatientsByDoctorRequest.ProtoReflect.Descriptor instead.
 func (*ListPatientsByDoctorRequest) Descriptor() ([]byte, []int) {
-	return file_patientdata_proto_rawDescGZIP(), []int{11}
+	return file_patientdata_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ListPatientsByDoctorRequest) GetDoctorUsername() string {
@@ -892,7 +989,7 @@ type ListSupervisedPatientsRequest struct {
 
 func (x *ListSupervisedPatientsRequest) Reset() {
 	*x = ListSupervisedPatientsRequest{}
-	mi := &file_patientdata_proto_msgTypes[12]
+	mi := &file_patientdata_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -904,7 +1001,7 @@ func (x *ListSupervisedPatientsRequest) String() string {
 func (*ListSupervisedPatientsRequest) ProtoMessage() {}
 
 func (x *ListSupervisedPatientsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_patientdata_proto_msgTypes[12]
+	mi := &file_patientdata_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -917,7 +1014,7 @@ func (x *ListSupervisedPatientsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSupervisedPatientsRequest.ProtoReflect.Descriptor instead.
 func (*ListSupervisedPatientsRequest) Descriptor() ([]byte, []int) {
-	return file_patientdata_proto_rawDescGZIP(), []int{12}
+	return file_patientdata_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ListSupervisedPatientsRequest) GetInternUsername() string {
@@ -964,7 +1061,7 @@ type GetPatientRequest struct {
 
 func (x *GetPatientRequest) Reset() {
 	*x = GetPatientRequest{}
-	mi := &file_patientdata_proto_msgTypes[13]
+	mi := &file_patientdata_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -976,7 +1073,7 @@ func (x *GetPatientRequest) String() string {
 func (*GetPatientRequest) ProtoMessage() {}
 
 func (x *GetPatientRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_patientdata_proto_msgTypes[13]
+	mi := &file_patientdata_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -989,7 +1086,7 @@ func (x *GetPatientRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPatientRequest.ProtoReflect.Descriptor instead.
 func (*GetPatientRequest) Descriptor() ([]byte, []int) {
-	return file_patientdata_proto_rawDescGZIP(), []int{13}
+	return file_patientdata_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *GetPatientRequest) GetPatientId() string {
@@ -1008,7 +1105,7 @@ type ListEncountersRequest struct {
 
 func (x *ListEncountersRequest) Reset() {
 	*x = ListEncountersRequest{}
-	mi := &file_patientdata_proto_msgTypes[14]
+	mi := &file_patientdata_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1020,7 +1117,7 @@ func (x *ListEncountersRequest) String() string {
 func (*ListEncountersRequest) ProtoMessage() {}
 
 func (x *ListEncountersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_patientdata_proto_msgTypes[14]
+	mi := &file_patientdata_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1033,7 +1130,7 @@ func (x *ListEncountersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListEncountersRequest.ProtoReflect.Descriptor instead.
 func (*ListEncountersRequest) Descriptor() ([]byte, []int) {
-	return file_patientdata_proto_rawDescGZIP(), []int{14}
+	return file_patientdata_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ListEncountersRequest) GetPatientId() string {
@@ -1053,7 +1150,7 @@ type ListClinicalEventsRequest struct {
 
 func (x *ListClinicalEventsRequest) Reset() {
 	*x = ListClinicalEventsRequest{}
-	mi := &file_patientdata_proto_msgTypes[15]
+	mi := &file_patientdata_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1065,7 +1162,7 @@ func (x *ListClinicalEventsRequest) String() string {
 func (*ListClinicalEventsRequest) ProtoMessage() {}
 
 func (x *ListClinicalEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_patientdata_proto_msgTypes[15]
+	mi := &file_patientdata_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1078,7 +1175,7 @@ func (x *ListClinicalEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListClinicalEventsRequest.ProtoReflect.Descriptor instead.
 func (*ListClinicalEventsRequest) Descriptor() ([]byte, []int) {
-	return file_patientdata_proto_rawDescGZIP(), []int{15}
+	return file_patientdata_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ListClinicalEventsRequest) GetPatientId() string {
@@ -1104,7 +1201,7 @@ type GetClinicalSummaryRequest struct {
 
 func (x *GetClinicalSummaryRequest) Reset() {
 	*x = GetClinicalSummaryRequest{}
-	mi := &file_patientdata_proto_msgTypes[16]
+	mi := &file_patientdata_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1116,7 +1213,7 @@ func (x *GetClinicalSummaryRequest) String() string {
 func (*GetClinicalSummaryRequest) ProtoMessage() {}
 
 func (x *GetClinicalSummaryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_patientdata_proto_msgTypes[16]
+	mi := &file_patientdata_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1129,7 +1226,7 @@ func (x *GetClinicalSummaryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetClinicalSummaryRequest.ProtoReflect.Descriptor instead.
 func (*GetClinicalSummaryRequest) Descriptor() ([]byte, []int) {
-	return file_patientdata_proto_rawDescGZIP(), []int{16}
+	return file_patientdata_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetClinicalSummaryRequest) GetPatientId() string {
@@ -1148,7 +1245,7 @@ type GetClinicalHistoryRequest struct {
 
 func (x *GetClinicalHistoryRequest) Reset() {
 	*x = GetClinicalHistoryRequest{}
-	mi := &file_patientdata_proto_msgTypes[17]
+	mi := &file_patientdata_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1160,7 +1257,7 @@ func (x *GetClinicalHistoryRequest) String() string {
 func (*GetClinicalHistoryRequest) ProtoMessage() {}
 
 func (x *GetClinicalHistoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_patientdata_proto_msgTypes[17]
+	mi := &file_patientdata_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1173,7 +1270,7 @@ func (x *GetClinicalHistoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetClinicalHistoryRequest.ProtoReflect.Descriptor instead.
 func (*GetClinicalHistoryRequest) Descriptor() ([]byte, []int) {
-	return file_patientdata_proto_rawDescGZIP(), []int{17}
+	return file_patientdata_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GetClinicalHistoryRequest) GetPatientId() string {
@@ -1192,7 +1289,7 @@ type ListCohortPatientsRequest struct {
 
 func (x *ListCohortPatientsRequest) Reset() {
 	*x = ListCohortPatientsRequest{}
-	mi := &file_patientdata_proto_msgTypes[18]
+	mi := &file_patientdata_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1204,7 +1301,7 @@ func (x *ListCohortPatientsRequest) String() string {
 func (*ListCohortPatientsRequest) ProtoMessage() {}
 
 func (x *ListCohortPatientsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_patientdata_proto_msgTypes[18]
+	mi := &file_patientdata_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1217,7 +1314,7 @@ func (x *ListCohortPatientsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCohortPatientsRequest.ProtoReflect.Descriptor instead.
 func (*ListCohortPatientsRequest) Descriptor() ([]byte, []int) {
-	return file_patientdata_proto_rawDescGZIP(), []int{18}
+	return file_patientdata_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ListCohortPatientsRequest) GetConditionCode() string {
@@ -1236,7 +1333,7 @@ type GetCohortStatisticsRequest struct {
 
 func (x *GetCohortStatisticsRequest) Reset() {
 	*x = GetCohortStatisticsRequest{}
-	mi := &file_patientdata_proto_msgTypes[19]
+	mi := &file_patientdata_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1248,7 +1345,7 @@ func (x *GetCohortStatisticsRequest) String() string {
 func (*GetCohortStatisticsRequest) ProtoMessage() {}
 
 func (x *GetCohortStatisticsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_patientdata_proto_msgTypes[19]
+	mi := &file_patientdata_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1261,12 +1358,82 @@ func (x *GetCohortStatisticsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCohortStatisticsRequest.ProtoReflect.Descriptor instead.
 func (*GetCohortStatisticsRequest) Descriptor() ([]byte, []int) {
-	return file_patientdata_proto_rawDescGZIP(), []int{19}
+	return file_patientdata_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *GetCohortStatisticsRequest) GetConditionCode() string {
 	if x != nil {
 		return x.ConditionCode
+	}
+	return ""
+}
+
+// page é 1-based; page <= 0 ou page_size <= 0 usam os padrões do servidor.
+// event_type vazio usa o default do servidor (OBSERVATION).
+type ListCohortExamsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ConditionCode string                 `protobuf:"bytes,1,opt,name=condition_code,json=conditionCode,proto3" json:"condition_code,omitempty"`
+	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	EventType     string                 `protobuf:"bytes,4,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCohortExamsRequest) Reset() {
+	*x = ListCohortExamsRequest{}
+	mi := &file_patientdata_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCohortExamsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCohortExamsRequest) ProtoMessage() {}
+
+func (x *ListCohortExamsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_patientdata_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCohortExamsRequest.ProtoReflect.Descriptor instead.
+func (*ListCohortExamsRequest) Descriptor() ([]byte, []int) {
+	return file_patientdata_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *ListCohortExamsRequest) GetConditionCode() string {
+	if x != nil {
+		return x.ConditionCode
+	}
+	return ""
+}
+
+func (x *ListCohortExamsRequest) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListCohortExamsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListCohortExamsRequest) GetEventType() string {
+	if x != nil {
+		return x.EventType
 	}
 	return ""
 }
@@ -1280,7 +1447,7 @@ type ListProjectsByResearcherRequest struct {
 
 func (x *ListProjectsByResearcherRequest) Reset() {
 	*x = ListProjectsByResearcherRequest{}
-	mi := &file_patientdata_proto_msgTypes[20]
+	mi := &file_patientdata_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1292,7 +1459,7 @@ func (x *ListProjectsByResearcherRequest) String() string {
 func (*ListProjectsByResearcherRequest) ProtoMessage() {}
 
 func (x *ListProjectsByResearcherRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_patientdata_proto_msgTypes[20]
+	mi := &file_patientdata_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1305,7 +1472,7 @@ func (x *ListProjectsByResearcherRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProjectsByResearcherRequest.ProtoReflect.Descriptor instead.
 func (*ListProjectsByResearcherRequest) Descriptor() ([]byte, []int) {
-	return file_patientdata_proto_rawDescGZIP(), []int{20}
+	return file_patientdata_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ListProjectsByResearcherRequest) GetResearcherUsername() string {
@@ -1326,7 +1493,7 @@ type CheckAssignmentRequest struct {
 
 func (x *CheckAssignmentRequest) Reset() {
 	*x = CheckAssignmentRequest{}
-	mi := &file_patientdata_proto_msgTypes[21]
+	mi := &file_patientdata_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1338,7 +1505,7 @@ func (x *CheckAssignmentRequest) String() string {
 func (*CheckAssignmentRequest) ProtoMessage() {}
 
 func (x *CheckAssignmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_patientdata_proto_msgTypes[21]
+	mi := &file_patientdata_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1351,7 +1518,7 @@ func (x *CheckAssignmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckAssignmentRequest.ProtoReflect.Descriptor instead.
 func (*CheckAssignmentRequest) Descriptor() ([]byte, []int) {
-	return file_patientdata_proto_rawDescGZIP(), []int{21}
+	return file_patientdata_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *CheckAssignmentRequest) GetUsername() string {
@@ -1385,7 +1552,7 @@ type CheckAssignmentResponse struct {
 
 func (x *CheckAssignmentResponse) Reset() {
 	*x = CheckAssignmentResponse{}
-	mi := &file_patientdata_proto_msgTypes[22]
+	mi := &file_patientdata_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1397,7 +1564,7 @@ func (x *CheckAssignmentResponse) String() string {
 func (*CheckAssignmentResponse) ProtoMessage() {}
 
 func (x *CheckAssignmentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_patientdata_proto_msgTypes[22]
+	mi := &file_patientdata_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1410,7 +1577,7 @@ func (x *CheckAssignmentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckAssignmentResponse.ProtoReflect.Descriptor instead.
 func (*CheckAssignmentResponse) Descriptor() ([]byte, []int) {
-	return file_patientdata_proto_rawDescGZIP(), []int{22}
+	return file_patientdata_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *CheckAssignmentResponse) GetAllowed() bool {
@@ -1508,7 +1675,12 @@ const file_patientdata_proto_rawDesc = "" +
 	"\x11ClinicalEventList\x125\n" +
 	"\x06events\x18\x01 \x03(\v2\x1d.patientdata.v1.ClinicalEventR\x06events\"B\n" +
 	"\vProjectList\x123\n" +
-	"\bprojects\x18\x01 \x03(\v2\x17.patientdata.v1.ProjectR\bprojects\"\xa7\x01\n" +
+	"\bprojects\x18\x01 \x03(\v2\x17.patientdata.v1.ProjectR\bprojects\"v\n" +
+	"\fPatientExams\x121\n" +
+	"\apatient\x18\x01 \x01(\v2\x17.patientdata.v1.PatientR\apatient\x123\n" +
+	"\x05exams\x18\x02 \x03(\v2\x1d.patientdata.v1.ClinicalEventR\x05exams\"K\n" +
+	"\x0fCohortExamsList\x128\n" +
+	"\bpatients\x18\x01 \x03(\v2\x1c.patientdata.v1.PatientExamsR\bpatients\"\xa7\x01\n" +
 	"\x1bListPatientsByDoctorRequest\x12'\n" +
 	"\x0fdoctor_username\x18\x01 \x01(\tR\x0edoctorUsername\x12\x12\n" +
 	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
@@ -1541,7 +1713,13 @@ const file_patientdata_proto_rawDesc = "" +
 	"\x19ListCohortPatientsRequest\x12%\n" +
 	"\x0econdition_code\x18\x01 \x01(\tR\rconditionCode\"C\n" +
 	"\x1aGetCohortStatisticsRequest\x12%\n" +
-	"\x0econdition_code\x18\x01 \x01(\tR\rconditionCode\"R\n" +
+	"\x0econdition_code\x18\x01 \x01(\tR\rconditionCode\"\x8f\x01\n" +
+	"\x16ListCohortExamsRequest\x12%\n" +
+	"\x0econdition_code\x18\x01 \x01(\tR\rconditionCode\x12\x12\n" +
+	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"event_type\x18\x04 \x01(\tR\teventType\"R\n" +
 	"\x1fListProjectsByResearcherRequest\x12/\n" +
 	"\x13researcher_username\x18\x01 \x01(\tR\x12researcherUsername\"g\n" +
 	"\x16CheckAssignmentRequest\x12\x1a\n" +
@@ -1551,7 +1729,7 @@ const file_patientdata_proto_rawDesc = "" +
 	"\x04role\x18\x03 \x01(\tR\x04role\"\\\n" +
 	"\x17CheckAssignmentResponse\x12\x18\n" +
 	"\aallowed\x18\x01 \x01(\bR\aallowed\x12'\n" +
-	"\x0fassignment_type\x18\x02 \x01(\tR\x0eassignmentType2\xb3\b\n" +
+	"\x0fassignment_type\x18\x02 \x01(\tR\x0eassignmentType2\x8f\t\n" +
 	"\x12PatientDataService\x12^\n" +
 	"\x14ListPatientsByDoctor\x12+.patientdata.v1.ListPatientsByDoctorRequest\x1a\x17.patientdata.v1.Patient0\x01\x12b\n" +
 	"\x16ListSupervisedPatients\x12-.patientdata.v1.ListSupervisedPatientsRequest\x1a\x17.patientdata.v1.Patient0\x01\x12H\n" +
@@ -1562,7 +1740,8 @@ const file_patientdata_proto_rawDesc = "" +
 	"\x12GetClinicalSummary\x12).patientdata.v1.GetClinicalSummaryRequest\x1a\x1f.patientdata.v1.ClinicalSummary\x12b\n" +
 	"\x12GetClinicalHistory\x12).patientdata.v1.GetClinicalHistoryRequest\x1a!.patientdata.v1.ClinicalEventList\x12Z\n" +
 	"\x12ListCohortPatients\x12).patientdata.v1.ListCohortPatientsRequest\x1a\x17.patientdata.v1.Patient0\x01\x12c\n" +
-	"\x13GetCohortStatistics\x12*.patientdata.v1.GetCohortStatisticsRequest\x1a .patientdata.v1.CohortStatistics\x12h\n" +
+	"\x13GetCohortStatistics\x12*.patientdata.v1.GetCohortStatisticsRequest\x1a .patientdata.v1.CohortStatistics\x12Z\n" +
+	"\x0fListCohortExams\x12&.patientdata.v1.ListCohortExamsRequest\x1a\x1f.patientdata.v1.CohortExamsList\x12h\n" +
 	"\x18ListProjectsByResearcher\x12/.patientdata.v1.ListProjectsByResearcherRequest\x1a\x1b.patientdata.v1.ProjectList\x12b\n" +
 	"\x0fCheckAssignment\x12&.patientdata.v1.CheckAssignmentRequest\x1a'.patientdata.v1.CheckAssignmentResponseBBZ@gateway-authorization-service/proto/patientdata/v1;patientdatav1b\x06proto3"
 
@@ -1578,7 +1757,7 @@ func file_patientdata_proto_rawDescGZIP() []byte {
 	return file_patientdata_proto_rawDescData
 }
 
-var file_patientdata_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
+var file_patientdata_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_patientdata_proto_goTypes = []any{
 	(*Patient)(nil),                         // 0: patientdata.v1.Patient
 	(*Encounter)(nil),                       // 1: patientdata.v1.Encounter
@@ -1591,18 +1770,21 @@ var file_patientdata_proto_goTypes = []any{
 	(*EncounterList)(nil),                   // 8: patientdata.v1.EncounterList
 	(*ClinicalEventList)(nil),               // 9: patientdata.v1.ClinicalEventList
 	(*ProjectList)(nil),                     // 10: patientdata.v1.ProjectList
-	(*ListPatientsByDoctorRequest)(nil),     // 11: patientdata.v1.ListPatientsByDoctorRequest
-	(*ListSupervisedPatientsRequest)(nil),   // 12: patientdata.v1.ListSupervisedPatientsRequest
-	(*GetPatientRequest)(nil),               // 13: patientdata.v1.GetPatientRequest
-	(*ListEncountersRequest)(nil),           // 14: patientdata.v1.ListEncountersRequest
-	(*ListClinicalEventsRequest)(nil),       // 15: patientdata.v1.ListClinicalEventsRequest
-	(*GetClinicalSummaryRequest)(nil),       // 16: patientdata.v1.GetClinicalSummaryRequest
-	(*GetClinicalHistoryRequest)(nil),       // 17: patientdata.v1.GetClinicalHistoryRequest
-	(*ListCohortPatientsRequest)(nil),       // 18: patientdata.v1.ListCohortPatientsRequest
-	(*GetCohortStatisticsRequest)(nil),      // 19: patientdata.v1.GetCohortStatisticsRequest
-	(*ListProjectsByResearcherRequest)(nil), // 20: patientdata.v1.ListProjectsByResearcherRequest
-	(*CheckAssignmentRequest)(nil),          // 21: patientdata.v1.CheckAssignmentRequest
-	(*CheckAssignmentResponse)(nil),         // 22: patientdata.v1.CheckAssignmentResponse
+	(*PatientExams)(nil),                    // 11: patientdata.v1.PatientExams
+	(*CohortExamsList)(nil),                 // 12: patientdata.v1.CohortExamsList
+	(*ListPatientsByDoctorRequest)(nil),     // 13: patientdata.v1.ListPatientsByDoctorRequest
+	(*ListSupervisedPatientsRequest)(nil),   // 14: patientdata.v1.ListSupervisedPatientsRequest
+	(*GetPatientRequest)(nil),               // 15: patientdata.v1.GetPatientRequest
+	(*ListEncountersRequest)(nil),           // 16: patientdata.v1.ListEncountersRequest
+	(*ListClinicalEventsRequest)(nil),       // 17: patientdata.v1.ListClinicalEventsRequest
+	(*GetClinicalSummaryRequest)(nil),       // 18: patientdata.v1.GetClinicalSummaryRequest
+	(*GetClinicalHistoryRequest)(nil),       // 19: patientdata.v1.GetClinicalHistoryRequest
+	(*ListCohortPatientsRequest)(nil),       // 20: patientdata.v1.ListCohortPatientsRequest
+	(*GetCohortStatisticsRequest)(nil),      // 21: patientdata.v1.GetCohortStatisticsRequest
+	(*ListCohortExamsRequest)(nil),          // 22: patientdata.v1.ListCohortExamsRequest
+	(*ListProjectsByResearcherRequest)(nil), // 23: patientdata.v1.ListProjectsByResearcherRequest
+	(*CheckAssignmentRequest)(nil),          // 24: patientdata.v1.CheckAssignmentRequest
+	(*CheckAssignmentResponse)(nil),         // 25: patientdata.v1.CheckAssignmentResponse
 }
 var file_patientdata_proto_depIdxs = []int32{
 	0,  // 0: patientdata.v1.ClinicalSummary.patient:type_name -> patientdata.v1.Patient
@@ -1618,33 +1800,38 @@ var file_patientdata_proto_depIdxs = []int32{
 	1,  // 10: patientdata.v1.EncounterList.encounters:type_name -> patientdata.v1.Encounter
 	2,  // 11: patientdata.v1.ClinicalEventList.events:type_name -> patientdata.v1.ClinicalEvent
 	3,  // 12: patientdata.v1.ProjectList.projects:type_name -> patientdata.v1.Project
-	11, // 13: patientdata.v1.PatientDataService.ListPatientsByDoctor:input_type -> patientdata.v1.ListPatientsByDoctorRequest
-	12, // 14: patientdata.v1.PatientDataService.ListSupervisedPatients:input_type -> patientdata.v1.ListSupervisedPatientsRequest
-	13, // 15: patientdata.v1.PatientDataService.GetPatient:input_type -> patientdata.v1.GetPatientRequest
-	14, // 16: patientdata.v1.PatientDataService.ListEncounters:input_type -> patientdata.v1.ListEncountersRequest
-	15, // 17: patientdata.v1.PatientDataService.ListClinicalEvents:input_type -> patientdata.v1.ListClinicalEventsRequest
-	16, // 18: patientdata.v1.PatientDataService.GetClinicalSummary:input_type -> patientdata.v1.GetClinicalSummaryRequest
-	17, // 19: patientdata.v1.PatientDataService.GetClinicalHistory:input_type -> patientdata.v1.GetClinicalHistoryRequest
-	18, // 20: patientdata.v1.PatientDataService.ListCohortPatients:input_type -> patientdata.v1.ListCohortPatientsRequest
-	19, // 21: patientdata.v1.PatientDataService.GetCohortStatistics:input_type -> patientdata.v1.GetCohortStatisticsRequest
-	20, // 22: patientdata.v1.PatientDataService.ListProjectsByResearcher:input_type -> patientdata.v1.ListProjectsByResearcherRequest
-	21, // 23: patientdata.v1.PatientDataService.CheckAssignment:input_type -> patientdata.v1.CheckAssignmentRequest
-	0,  // 24: patientdata.v1.PatientDataService.ListPatientsByDoctor:output_type -> patientdata.v1.Patient
-	0,  // 25: patientdata.v1.PatientDataService.ListSupervisedPatients:output_type -> patientdata.v1.Patient
-	0,  // 26: patientdata.v1.PatientDataService.GetPatient:output_type -> patientdata.v1.Patient
-	8,  // 27: patientdata.v1.PatientDataService.ListEncounters:output_type -> patientdata.v1.EncounterList
-	9,  // 28: patientdata.v1.PatientDataService.ListClinicalEvents:output_type -> patientdata.v1.ClinicalEventList
-	4,  // 29: patientdata.v1.PatientDataService.GetClinicalSummary:output_type -> patientdata.v1.ClinicalSummary
-	9,  // 30: patientdata.v1.PatientDataService.GetClinicalHistory:output_type -> patientdata.v1.ClinicalEventList
-	0,  // 31: patientdata.v1.PatientDataService.ListCohortPatients:output_type -> patientdata.v1.Patient
-	6,  // 32: patientdata.v1.PatientDataService.GetCohortStatistics:output_type -> patientdata.v1.CohortStatistics
-	10, // 33: patientdata.v1.PatientDataService.ListProjectsByResearcher:output_type -> patientdata.v1.ProjectList
-	22, // 34: patientdata.v1.PatientDataService.CheckAssignment:output_type -> patientdata.v1.CheckAssignmentResponse
-	24, // [24:35] is the sub-list for method output_type
-	13, // [13:24] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	0,  // 13: patientdata.v1.PatientExams.patient:type_name -> patientdata.v1.Patient
+	2,  // 14: patientdata.v1.PatientExams.exams:type_name -> patientdata.v1.ClinicalEvent
+	11, // 15: patientdata.v1.CohortExamsList.patients:type_name -> patientdata.v1.PatientExams
+	13, // 16: patientdata.v1.PatientDataService.ListPatientsByDoctor:input_type -> patientdata.v1.ListPatientsByDoctorRequest
+	14, // 17: patientdata.v1.PatientDataService.ListSupervisedPatients:input_type -> patientdata.v1.ListSupervisedPatientsRequest
+	15, // 18: patientdata.v1.PatientDataService.GetPatient:input_type -> patientdata.v1.GetPatientRequest
+	16, // 19: patientdata.v1.PatientDataService.ListEncounters:input_type -> patientdata.v1.ListEncountersRequest
+	17, // 20: patientdata.v1.PatientDataService.ListClinicalEvents:input_type -> patientdata.v1.ListClinicalEventsRequest
+	18, // 21: patientdata.v1.PatientDataService.GetClinicalSummary:input_type -> patientdata.v1.GetClinicalSummaryRequest
+	19, // 22: patientdata.v1.PatientDataService.GetClinicalHistory:input_type -> patientdata.v1.GetClinicalHistoryRequest
+	20, // 23: patientdata.v1.PatientDataService.ListCohortPatients:input_type -> patientdata.v1.ListCohortPatientsRequest
+	21, // 24: patientdata.v1.PatientDataService.GetCohortStatistics:input_type -> patientdata.v1.GetCohortStatisticsRequest
+	22, // 25: patientdata.v1.PatientDataService.ListCohortExams:input_type -> patientdata.v1.ListCohortExamsRequest
+	23, // 26: patientdata.v1.PatientDataService.ListProjectsByResearcher:input_type -> patientdata.v1.ListProjectsByResearcherRequest
+	24, // 27: patientdata.v1.PatientDataService.CheckAssignment:input_type -> patientdata.v1.CheckAssignmentRequest
+	0,  // 28: patientdata.v1.PatientDataService.ListPatientsByDoctor:output_type -> patientdata.v1.Patient
+	0,  // 29: patientdata.v1.PatientDataService.ListSupervisedPatients:output_type -> patientdata.v1.Patient
+	0,  // 30: patientdata.v1.PatientDataService.GetPatient:output_type -> patientdata.v1.Patient
+	8,  // 31: patientdata.v1.PatientDataService.ListEncounters:output_type -> patientdata.v1.EncounterList
+	9,  // 32: patientdata.v1.PatientDataService.ListClinicalEvents:output_type -> patientdata.v1.ClinicalEventList
+	4,  // 33: patientdata.v1.PatientDataService.GetClinicalSummary:output_type -> patientdata.v1.ClinicalSummary
+	9,  // 34: patientdata.v1.PatientDataService.GetClinicalHistory:output_type -> patientdata.v1.ClinicalEventList
+	0,  // 35: patientdata.v1.PatientDataService.ListCohortPatients:output_type -> patientdata.v1.Patient
+	6,  // 36: patientdata.v1.PatientDataService.GetCohortStatistics:output_type -> patientdata.v1.CohortStatistics
+	12, // 37: patientdata.v1.PatientDataService.ListCohortExams:output_type -> patientdata.v1.CohortExamsList
+	10, // 38: patientdata.v1.PatientDataService.ListProjectsByResearcher:output_type -> patientdata.v1.ProjectList
+	25, // 39: patientdata.v1.PatientDataService.CheckAssignment:output_type -> patientdata.v1.CheckAssignmentResponse
+	28, // [28:40] is the sub-list for method output_type
+	16, // [16:28] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_patientdata_proto_init() }
@@ -1659,7 +1846,7 @@ func file_patientdata_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_patientdata_proto_rawDesc), len(file_patientdata_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   23,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

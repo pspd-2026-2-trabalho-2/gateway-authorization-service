@@ -28,6 +28,10 @@ service PatientDataService {
   rpc ListCohortPatients(ListCohortPatientsRequest) returns (stream Patient);
   // Estatísticas agregadas de uma coorte.
   rpc GetCohortStatistics(GetCohortStatisticsRequest) returns (CohortStatistics);
+  // Uma página de pacientes da coorte já com seus eventos clínicos, em uma
+  // resposta só — substitui o padrão N+1 (stream de pacientes + um
+  // ListClinicalEvents por paciente) que causava esgotamento do pool sob carga.
+  rpc ListCohortExams(ListCohortExamsRequest) returns (CohortExamsList);
   // Projetos de pesquisa de um pesquisador.
   rpc ListProjectsByResearcher(ListProjectsByResearcherRequest) returns (ProjectList);
   // Verifica o vínculo cuidador↔paciente (usado pelo Authorization Service).
@@ -111,6 +115,13 @@ message EncounterList { repeated Encounter encounters = 1; }
 message ClinicalEventList { repeated ClinicalEvent events = 1; }
 message ProjectList { repeated Project projects = 1; }
 
+// Um paciente da coorte com seus eventos clínicos já anexados.
+message PatientExams {
+  Patient patient = 1;
+  repeated ClinicalEvent exams = 2;
+}
+message CohortExamsList { repeated PatientExams patients = 1; }
+
 // ---------- Requests ----------
 
 // page é 1-based; page <= 0 ou page_size <= 0 usam os padrões do servidor.
@@ -138,6 +149,14 @@ message GetClinicalSummaryRequest { string patient_id = 1; }
 message GetClinicalHistoryRequest { string patient_id = 1; }
 message ListCohortPatientsRequest { string condition_code = 1; }
 message GetCohortStatisticsRequest { string condition_code = 1; }
+// page é 1-based; page <= 0 ou page_size <= 0 usam os padrões do servidor.
+// event_type vazio usa o default do servidor (OBSERVATION).
+message ListCohortExamsRequest {
+  string condition_code = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  string event_type = 4;
+}
 message ListProjectsByResearcherRequest { string researcher_username = 1; }
 
 message CheckAssignmentRequest {

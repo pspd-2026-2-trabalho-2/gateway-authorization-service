@@ -28,6 +28,7 @@ const (
 	PatientDataService_GetClinicalHistory_FullMethodName       = "/patientdata.v1.PatientDataService/GetClinicalHistory"
 	PatientDataService_ListCohortPatients_FullMethodName       = "/patientdata.v1.PatientDataService/ListCohortPatients"
 	PatientDataService_GetCohortStatistics_FullMethodName      = "/patientdata.v1.PatientDataService/GetCohortStatistics"
+	PatientDataService_ListCohortExams_FullMethodName          = "/patientdata.v1.PatientDataService/ListCohortExams"
 	PatientDataService_ListProjectsByResearcher_FullMethodName = "/patientdata.v1.PatientDataService/ListProjectsByResearcher"
 	PatientDataService_CheckAssignment_FullMethodName          = "/patientdata.v1.PatientDataService/CheckAssignment"
 )
@@ -60,6 +61,10 @@ type PatientDataServiceClient interface {
 	ListCohortPatients(ctx context.Context, in *ListCohortPatientsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Patient], error)
 	// Estatísticas agregadas de uma coorte.
 	GetCohortStatistics(ctx context.Context, in *GetCohortStatisticsRequest, opts ...grpc.CallOption) (*CohortStatistics, error)
+	// Uma página de pacientes da coorte já com seus eventos clínicos, em uma
+	// resposta só — substitui o padrão N+1 (stream de pacientes + um
+	// ListClinicalEvents por paciente) que causava esgotamento do pool sob carga.
+	ListCohortExams(ctx context.Context, in *ListCohortExamsRequest, opts ...grpc.CallOption) (*CohortExamsList, error)
 	// Projetos de pesquisa de um pesquisador.
 	ListProjectsByResearcher(ctx context.Context, in *ListProjectsByResearcherRequest, opts ...grpc.CallOption) (*ProjectList, error)
 	// Verifica o vínculo cuidador↔paciente (usado pelo Authorization Service).
@@ -191,6 +196,16 @@ func (c *patientDataServiceClient) GetCohortStatistics(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *patientDataServiceClient) ListCohortExams(ctx context.Context, in *ListCohortExamsRequest, opts ...grpc.CallOption) (*CohortExamsList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CohortExamsList)
+	err := c.cc.Invoke(ctx, PatientDataService_ListCohortExams_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *patientDataServiceClient) ListProjectsByResearcher(ctx context.Context, in *ListProjectsByResearcherRequest, opts ...grpc.CallOption) (*ProjectList, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ProjectList)
@@ -239,6 +254,10 @@ type PatientDataServiceServer interface {
 	ListCohortPatients(*ListCohortPatientsRequest, grpc.ServerStreamingServer[Patient]) error
 	// Estatísticas agregadas de uma coorte.
 	GetCohortStatistics(context.Context, *GetCohortStatisticsRequest) (*CohortStatistics, error)
+	// Uma página de pacientes da coorte já com seus eventos clínicos, em uma
+	// resposta só — substitui o padrão N+1 (stream de pacientes + um
+	// ListClinicalEvents por paciente) que causava esgotamento do pool sob carga.
+	ListCohortExams(context.Context, *ListCohortExamsRequest) (*CohortExamsList, error)
 	// Projetos de pesquisa de um pesquisador.
 	ListProjectsByResearcher(context.Context, *ListProjectsByResearcherRequest) (*ProjectList, error)
 	// Verifica o vínculo cuidador↔paciente (usado pelo Authorization Service).
@@ -279,6 +298,9 @@ func (UnimplementedPatientDataServiceServer) ListCohortPatients(*ListCohortPatie
 }
 func (UnimplementedPatientDataServiceServer) GetCohortStatistics(context.Context, *GetCohortStatisticsRequest) (*CohortStatistics, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetCohortStatistics not implemented")
+}
+func (UnimplementedPatientDataServiceServer) ListCohortExams(context.Context, *ListCohortExamsRequest) (*CohortExamsList, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListCohortExams not implemented")
 }
 func (UnimplementedPatientDataServiceServer) ListProjectsByResearcher(context.Context, *ListProjectsByResearcherRequest) (*ProjectList, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListProjectsByResearcher not implemented")
@@ -448,6 +470,24 @@ func _PatientDataService_GetCohortStatistics_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PatientDataService_ListCohortExams_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListCohortExamsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PatientDataServiceServer).ListCohortExams(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PatientDataService_ListCohortExams_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PatientDataServiceServer).ListCohortExams(ctx, req.(*ListCohortExamsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PatientDataService_ListProjectsByResearcher_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListProjectsByResearcherRequest)
 	if err := dec(in); err != nil {
@@ -514,6 +554,10 @@ var PatientDataService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetCohortStatistics",
 			Handler:    _PatientDataService_GetCohortStatistics_Handler,
+		},
+		{
+			MethodName: "ListCohortExams",
+			Handler:    _PatientDataService_ListCohortExams_Handler,
 		},
 		{
 			MethodName: "ListProjectsByResearcher",

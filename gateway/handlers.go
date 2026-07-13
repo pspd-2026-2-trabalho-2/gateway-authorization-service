@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -22,6 +23,20 @@ const (
 	defaultPageSize = 50
 	maxPageSize     = 200
 )
+
+// downstreamTimeout é o deadline default de toda chamada gRPC downstream
+// (auth/patient-data/data-transform). Definido em main() a partir de
+// DOWNSTREAM_TIMEOUT.
+var downstreamTimeout = 15 * time.Second
+
+// downstreamCtx deriva do contexto da requisição HTTP: se o cliente desiste
+// (conexão fechada, timeout do lado dele), o cancelamento se propaga para as
+// chamadas gRPC em andamento em vez de deixá-las órfãs disputando o pool do
+// patient-data-service. O timeout garante um teto mesmo que o cliente nunca
+// desista e o serviço downstream não imponha deadline nenhum.
+func downstreamCtx(r *http.Request) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(r.Context(), downstreamTimeout)
+}
 
 func getUsernameFromRequest(r *http.Request) string {
 	claims, err := parseClaims(r)
@@ -96,19 +111,22 @@ func getPatientHandler(authClient pb.AuthorizationServiceClient, pdClient pdpb.P
 	return func(w http.ResponseWriter, r *http.Request) {
 		patientID := r.PathValue("id")
 
-		authResp, err := checkAuth(r, authClient, patientID, "")
+		ctx, cancel := downstreamCtx(r)
+		defer cancel()
+
+		authResp, err := checkAuth(ctx, r, authClient, patientID, "")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
 		}
 
-		rawPatient, err := pdClient.GetPatient(context.Background(), &pdpb.GetPatientRequest{PatientId: patientID})
+		rawPatient, err := pdClient.GetPatient(ctx, &pdpb.GetPatientRequest{PatientId: patientID})
 		if err != nil {
 			http.Error(w, "Erro ao buscar dados", http.StatusInternalServerError)
 			return
 		}
 
-		fhirResponse, err := dtClient.TransformPatient(context.Background(), &dtpb.TransformPatientRequest{
+		fhirResponse, err := dtClient.TransformPatient(ctx, &dtpb.TransformPatientRequest{
 			Patient:     rawPatient,
 			AccessLevel: mapAccessLevel(authResp.AccessLevel),
 		})
@@ -127,19 +145,22 @@ func getPatientSummaryHandler(authClient pb.AuthorizationServiceClient, pdClient
 	return func(w http.ResponseWriter, r *http.Request) {
 		patientID := r.PathValue("id")
 
-		authResp, err := checkAuth(r, authClient, patientID, "")
+		ctx, cancel := downstreamCtx(r)
+		defer cancel()
+
+		authResp, err := checkAuth(ctx, r, authClient, patientID, "")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
 		}
 
-		rawSummary, err := pdClient.GetClinicalSummary(context.Background(), &pdpb.GetClinicalSummaryRequest{PatientId: patientID})
+		rawSummary, err := pdClient.GetClinicalSummary(ctx, &pdpb.GetClinicalSummaryRequest{PatientId: patientID})
 		if err != nil {
 			http.Error(w, "Erro ao buscar resumo", http.StatusInternalServerError)
 			return
 		}
 
-		fhirResponse, err := dtClient.TransformClinicalSummary(context.Background(), &dtpb.TransformClinicalSummaryRequest{
+		fhirResponse, err := dtClient.TransformClinicalSummary(ctx, &dtpb.TransformClinicalSummaryRequest{
 			Summary:     rawSummary,
 			AccessLevel: mapAccessLevel(authResp.AccessLevel),
 		})
@@ -158,19 +179,22 @@ func getCohortStatisticsHandler(authClient pb.AuthorizationServiceClient, pdClie
 	return func(w http.ResponseWriter, r *http.Request) {
 		condition := r.PathValue("condition")
 
-		_, err := checkAuth(r, authClient, "", condition)
+		ctx, cancel := downstreamCtx(r)
+		defer cancel()
+
+		_, err := checkAuth(ctx, r, authClient, "", condition)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
 		}
 
-		rawStats, err := pdClient.GetCohortStatistics(context.Background(), &pdpb.GetCohortStatisticsRequest{ConditionCode: condition})
+		rawStats, err := pdClient.GetCohortStatistics(ctx, &pdpb.GetCohortStatisticsRequest{ConditionCode: condition})
 		if err != nil {
 			http.Error(w, "Erro ao buscar estatísticas", http.StatusInternalServerError)
 			return
 		}
 
-		aggResponse, err := dtClient.TransformCohortStatistics(context.Background(), &dtpb.TransformCohortStatisticsRequest{
+		aggResponse, err := dtClient.TransformCohortStatistics(ctx, &dtpb.TransformCohortStatisticsRequest{
 			Stats: rawStats,
 		})
 		if err != nil {
@@ -190,7 +214,10 @@ func getDoctorPatientsHandler(
 	dtClient dtpb.DataTransformServiceClient,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, err := checkAuth(r, authClient, "", "")
+		ctx, cancel := downstreamCtx(r)
+		defer cancel()
+
+		_, err := checkAuth(ctx, r, authClient, "", "")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
@@ -204,7 +231,7 @@ func getDoctorPatientsHandler(
 			return
 		}
 
-		stream, err := pdClient.ListPatientsByDoctor(context.Background(), &pdpb.ListPatientsByDoctorRequest{
+		stream, err := pdClient.ListPatientsByDoctor(ctx, &pdpb.ListPatientsByDoctorRequest{
 			DoctorUsername: username,
 			Page:           page,
 			PageSize:       pageSize,
@@ -231,7 +258,7 @@ func getDoctorPatientsHandler(
 		}
 		patientsList = setPaginationHeaders(w, page, pageSize, patientsList)
 
-		fhirResponse, err := dtClient.TransformPatientList(context.Background(), &dtpb.TransformPatientListRequest{
+		fhirResponse, err := dtClient.TransformPatientList(ctx, &dtpb.TransformPatientListRequest{
 			Patients:    patientsList,
 			AccessLevel: dtpb.AccessLevel_FULL,
 		})
@@ -250,7 +277,10 @@ func getInternPatientsHandler(
 	dtClient dtpb.DataTransformServiceClient,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, err := checkAuth(r, authClient, "", "")
+		ctx, cancel := downstreamCtx(r)
+		defer cancel()
+
+		_, err := checkAuth(ctx, r, authClient, "", "")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
@@ -264,7 +294,7 @@ func getInternPatientsHandler(
 			return
 		}
 
-		stream, err := pdClient.ListSupervisedPatients(context.Background(), &pdpb.ListSupervisedPatientsRequest{
+		stream, err := pdClient.ListSupervisedPatients(ctx, &pdpb.ListSupervisedPatientsRequest{
 			InternUsername: username,
 			Page:           page,
 			PageSize:       pageSize,
@@ -291,7 +321,7 @@ func getInternPatientsHandler(
 		}
 		patientsList = setPaginationHeaders(w, page, pageSize, patientsList)
 
-		fhirResponse, err := dtClient.TransformPatientList(context.Background(), &dtpb.TransformPatientListRequest{
+		fhirResponse, err := dtClient.TransformPatientList(ctx, &dtpb.TransformPatientListRequest{
 			Patients:    patientsList,
 			AccessLevel: dtpb.AccessLevel_PARTIAL,
 		})
@@ -306,20 +336,23 @@ func getInternPatientsHandler(
 
 func getResearcherProjectsHandler(authClient pb.AuthorizationServiceClient, pdClient pdpb.PatientDataServiceClient, dtClient dtpb.DataTransformServiceClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, err := checkAuth(r, authClient, "", "")
+		ctx, cancel := downstreamCtx(r)
+		defer cancel()
+
+		_, err := checkAuth(ctx, r, authClient, "", "")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
 		}
 
 		username := getUsernameFromRequest(r)
-		rawList, err := pdClient.ListProjectsByResearcher(context.Background(), &pdpb.ListProjectsByResearcherRequest{ResearcherUsername: username})
+		rawList, err := pdClient.ListProjectsByResearcher(ctx, &pdpb.ListProjectsByResearcherRequest{ResearcherUsername: username})
 		if err != nil {
 			http.Error(w, "Erro ao listar projetos de pesquisa", http.StatusInternalServerError)
 			return
 		}
 
-		fhirResponse, err := dtClient.TransformProjects(context.Background(), &dtpb.TransformProjectsRequest{
+		fhirResponse, err := dtClient.TransformProjects(ctx, &dtpb.TransformProjectsRequest{
 			Projects: rawList.Projects,
 		})
 		if err != nil {
@@ -333,25 +366,29 @@ func getResearcherProjectsHandler(authClient pb.AuthorizationServiceClient, pdCl
 func getPatientHistoryHandler(authClient pb.AuthorizationServiceClient, pdClient pdpb.PatientDataServiceClient, dtClient dtpb.DataTransformServiceClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		patientID := r.PathValue("id")
-		authResp, err := checkAuth(r, authClient, patientID, "")
+
+		ctx, cancel := downstreamCtx(r)
+		defer cancel()
+
+		authResp, err := checkAuth(ctx, r, authClient, patientID, "")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
 		}
 
-		rawPatient, err := pdClient.GetPatient(context.Background(), &pdpb.GetPatientRequest{PatientId: patientID})
+		rawPatient, err := pdClient.GetPatient(ctx, &pdpb.GetPatientRequest{PatientId: patientID})
 		if err != nil {
 			http.Error(w, "Erro ao buscar paciente", http.StatusInternalServerError)
 			return
 		}
 
-		rawHistory, err := pdClient.GetClinicalHistory(context.Background(), &pdpb.GetClinicalHistoryRequest{PatientId: patientID})
+		rawHistory, err := pdClient.GetClinicalHistory(ctx, &pdpb.GetClinicalHistoryRequest{PatientId: patientID})
 		if err != nil {
 			http.Error(w, "Erro ao buscar histórico", http.StatusInternalServerError)
 			return
 		}
 
-		fhirResponse, err := dtClient.TransformClinicalHistory(context.Background(), &dtpb.TransformClinicalHistoryRequest{
+		fhirResponse, err := dtClient.TransformClinicalHistory(ctx, &dtpb.TransformClinicalHistoryRequest{
 			Patient:     rawPatient,
 			Events:      rawHistory.Events,
 			AccessLevel: mapAccessLevel(authResp.AccessLevel),
@@ -367,42 +404,41 @@ func getPatientHistoryHandler(authClient pb.AuthorizationServiceClient, pdClient
 func getCohortExamsHandler(authClient pb.AuthorizationServiceClient, pdClient pdpb.PatientDataServiceClient, dtClient dtpb.DataTransformServiceClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		condition := r.PathValue("condition")
-		authResp, err := checkAuth(r, authClient, "", condition)
+
+		ctx, cancel := downstreamCtx(r)
+		defer cancel()
+
+		authResp, err := checkAuth(ctx, r, authClient, "", condition)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusForbidden)
 			return
 		}
 
-		stream, err := pdClient.ListCohortPatients(context.Background(), &pdpb.ListCohortPatientsRequest{ConditionCode: condition})
+		page, pageSize := parsePagination(r)
+
+		// Uma página de pacientes+exames em uma única chamada, em vez do
+		// antigo stream + um ListClinicalEvents por paciente (N+1) — o que
+		// esgotava o pool do patient-data-service sob carga.
+		cohortResp, err := pdClient.ListCohortExams(ctx, &pdpb.ListCohortExamsRequest{
+			ConditionCode: condition,
+			Page:          page,
+			PageSize:      pageSize,
+		})
 		if err != nil {
-			http.Error(w, "Erro ao iniciar stream da coorte", http.StatusInternalServerError)
+			http.Error(w, "Erro ao buscar exames da coorte", http.StatusInternalServerError)
 			return
 		}
+		items := setPaginationHeaders(w, page, pageSize, cohortResp.GetPatients())
 
-		var patientExamsList []*dtpb.PatientExams
-		for {
-			patient, err := stream.Recv()
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				http.Error(w, "Erro ao ler stream de pacientes da coorte", http.StatusInternalServerError)
-				return
-			}
-
-			eventsResp, err := pdClient.ListClinicalEvents(context.Background(), &pdpb.ListClinicalEventsRequest{
-				PatientId: patient.PatientId,
-				EventType: "OBSERVATION",
+		patientExamsList := make([]*dtpb.PatientExams, 0, len(items))
+		for _, it := range items {
+			patientExamsList = append(patientExamsList, &dtpb.PatientExams{
+				Patient: it.GetPatient(),
+				Exams:   it.GetExams(),
 			})
-			if err == nil {
-				patientExamsList = append(patientExamsList, &dtpb.PatientExams{
-					Patient: patient,
-					Exams:   eventsResp.Events,
-				})
-			}
 		}
 
-		fhirResponse, err := dtClient.TransformCohortExams(context.Background(), &dtpb.TransformCohortExamsRequest{
+		fhirResponse, err := dtClient.TransformCohortExams(ctx, &dtpb.TransformCohortExamsRequest{
 			Patients:    patientExamsList,
 			AccessLevel: mapAccessLevel(authResp.AccessLevel),
 		})
