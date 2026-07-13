@@ -111,7 +111,7 @@ func mapAccessLevel(authLevel pb.AccessLevel) dtpb.AccessLevel {
 	}
 }
 
-func checkAuth(r *http.Request, authClient pb.AuthorizationServiceClient, targetPatientID string, projectID string) (*pb.AuthorizeResponse, error) {
+func checkAuth(ctx context.Context, r *http.Request, authClient pb.AuthorizationServiceClient, targetPatientID string, projectID string) (*pb.AuthorizeResponse, error) {
 	claims, err := parseClaims(r)
 	if err != nil {
 		return nil, err
@@ -122,7 +122,7 @@ func checkAuth(r *http.Request, authClient pb.AuthorizationServiceClient, target
 		return nil, fmt.Errorf("token não contém informações suficientes de usuário ou role")
 	}
 
-	authResp, err := authClient.Authorize(context.Background(), &pb.AuthorizeRequest{
+	authResp, err := authClient.Authorize(ctx, &pb.AuthorizeRequest{
 		Username:        username,
 		Role:            role,
 		TargetPatientId: targetPatientID,
